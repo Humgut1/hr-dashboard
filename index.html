@@ -55,7 +55,7 @@ select { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid
 
   <section>
     <h2>회사별 한눈에 보기</h2>
-    <div class="sub">머리글을 누르면 정렬돼요. 매출·영업이익은 최근 4개 분기 합(별도 재무제표), 직원 수는 가장 최근 공시 기준이에요.</div>
+    <div class="sub">머리글을 누르면 정렬돼요. 매출·영업이익은 최근 4개 분기 합(별도 재무제표), 직원 수는 가장 최근 공시 기준이에요. 계열사는 따로 공시하는 곳만 따로 줄이 있어요(모회사 숫자에는 안 들어가요). 쿠팡은 미국 공시(SEC)라 연결 기준이고, 달러를 분기 평균 환율로 바꿨어요. 직원 수는 1년에 한 번(물류 인력 포함)이에요.</div>
     <div class="scroll"><table id="table"></table></div>
   </section>
 
@@ -119,10 +119,10 @@ fetch("data.json").then(r => r.json()).then(d => {
 
   // 표
   const cols = [
-    ["name", "회사", c => `${c.name} <span class="tag">${c.industry}</span>`],
+    ["name", "회사", c => `${c.name} <span class="tag">${c.group ? c.group + " 계열" : c.industry}</span>`],
     ["employees", "직원 수", c => n(c.employees) + `<div class="tag">${c.emp_period}</div>`],
     ["emp_growth", "인원 증감", c => pct(c.emp_growth)],
-    ["revenue_ttm", "매출", c => won(c.revenue_ttm)],
+    ["revenue_ttm", "매출", c => won(c.revenue_ttm) + (c.fs === "SEC" ? `<div class="tag">미국 공시·연결·원화 환산</div>` : c.fs === "CFS" ? `<div class="tag">연결</div>` : "")],
     ["rev_growth", "매출 증감", c => pct(c.rev_growth)],
     ["rev_per_emp", "1인당 매출", c => won(c.rev_per_emp)],
     ["op_per_emp", "1인당 영업이익", c => won(c.op_per_emp)],
