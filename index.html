@@ -2,204 +2,720 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>채용·인원 대시보드</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
+/* 레이아웃: 왼쪽에 장(章) 목록, 오른쪽에 한 번에 한 장만. 휴대폰에서는 장 목록이 위쪽 가로 탭이 된다.
+   생김새는 토스 앱 느낌: Pretendard 글꼴, 토스 회색·파랑, 선 없는 흰 카드에 크게 둥근 모서리.
+   차트 색(s1~s4)은 고정 순서, 기준 회사는 항상 s2(주황) */
 :root {
-  --bg: #f7f7f5; --card: #ffffff; --text: #1d1d1f; --muted: #6b6b70; --line: #e4e4e0;
-  --accent: #2f6fde; --accent2: #e07b39; --good: #1f9d6b; --bad: #d1453b;
+  color-scheme: light;
+  --bg: #f2f4f6; --card: #ffffff; --sunken: #f2f4f6; --text: #191f28; --text2: #4e5968; --muted: #8b95a1;
+  --line: #e5e8eb; --grid: #f2f4f6; --soft: #f4f8ff; --ink: #3182f6; --tint: #e8f3ff; --tint-text: #1b64da;
+  --s1: #3182f6; --s2: #f66d1c; --s3: #10b07f; --s4: #f2a500; --dim: #d1d6db;
+  --good: #03a94d; --bad: #f04452;
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --r: 20px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #141416; --card: #1e1e21; --text: #ececee; --muted: #9a9aa0; --line: #2e2e33;
-    --accent: #6b9bf0; --accent2: #f0a06b; --good: #4cc995; --bad: #f07a70;
+    color-scheme: dark;
+    --bg: #101013; --card: #1d1d22; --sunken: #2a2a31; --text: #f2f2f4; --text2: #c3c3c9; --muted: #8d8d96;
+    --line: #2c2c34; --grid: #26262c; --soft: #1e2635; --ink: #5a9cff; --tint: #1c2b45; --tint-text: #8ab8ff;
+    --s1: #4b91f7; --s2: #f07a35; --s3: #18a87a; --s4: #d39300; --dim: #45454e;
+    --good: #2ec46f; --bad: #ff6370;
   }
 }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #101013; --card: #1d1d22; --sunken: #2a2a31; --text: #f2f2f4; --text2: #c3c3c9; --muted: #8d8d96;
+  --line: #2c2c34; --grid: #26262c; --soft: #1e2635; --ink: #5a9cff; --tint: #1c2b45; --tint-text: #8ab8ff;
+  --s1: #4b91f7; --s2: #f07a35; --s3: #18a87a; --s4: #d39300; --dim: #45454e;
+  --good: #2ec46f; --bad: #ff6370;
+}
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text);
-  font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; }
-main { max-width: 1120px; margin: 0 auto; padding: 28px 16px 60px; }
-h1 { font-size: 24px; margin: 0 0 4px; }
-h2 { font-size: 17px; margin: 0 0 4px; }
-.sub, .note { color: var(--muted); font-size: 13px; }
-.note { margin: 6px 0 0; }
-section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-top: 18px; }
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 18px; }
-.tile { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
-.tile b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
-.tile span { color: var(--muted); font-size: 13px; }
-.scroll { overflow-x: auto; margin-top: 10px; }
-table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
-th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
-th:first-child, td:first-child { text-align: left; }
-th { color: var(--muted); font-weight: 600; cursor: pointer; user-select: none; position: sticky; top: 0; background: var(--card); }
-th[data-sort]::after { content: " ↕"; opacity: .4; }
-tbody tr:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 var(--sans); letter-spacing: -.01em; -webkit-font-smoothing: antialiased; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 1320px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2 { font-weight: 700; letter-spacing: -.03em; text-wrap: balance; margin: 0; }
+h3 { font-size: 17px; font-weight: 700; letter-spacing: -.02em; margin: 0; color: var(--text); }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; border-radius: 8px; }
+
+/* ── 머리 ── */
+.top { padding-block: 32px 24px; display: flex; gap: 20px 32px; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; }
+.brand { display: grid; gap: 4px; min-width: 0; }
+.brand .eyebrow { margin: 0; }
+h1 { font-size: clamp(26px, 3.2vw, 32px); line-height: 1.25; }
+.updated { color: var(--muted); font-size: 14px; }
+.controls { display: flex; gap: 10px; flex-wrap: wrap; }
+.field { display: grid; gap: 6px; }
+.field span { font-size: 13px; font-weight: 500; color: var(--muted); }
+select { font: 600 15px var(--sans); letter-spacing: -.01em; padding: 11px 38px 11px 16px; border-radius: 14px; border: 0; background-color: var(--card); color: var(--text);
+  appearance: none; cursor: pointer; min-width: 160px; max-width: 100%;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 21px) 55%, calc(100% - 16px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
+select:hover { background-color: var(--sunken); }
+.panel select { background-color: var(--card); }
+.eyebrow { font-size: 13px; font-weight: 600; color: var(--ink); margin: 0 0 6px; }
+
+/* ── 장 목록 + 본문 ── */
+.shell { display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 36px; align-items: start; padding-block: 0 80px; }
+.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 20px); display: grid; gap: 2px; counter-reset: ch;
+  background: var(--card); border-radius: var(--r); padding: 10px; }
+.rail a { display: grid; gap: 1px; padding: 11px 12px; border-radius: 12px; text-decoration: none; color: var(--text2); counter-increment: ch; transition: background .15s; }
+.rail a b { font-weight: 600; font-size: 15px; color: var(--text2); display: flex; gap: 10px; align-items: baseline; }
+.rail a b::before { content: counter(ch); font: 600 12px var(--sans); color: var(--muted); width: 14px; font-variant-numeric: tabular-nums; }
+.rail a small { font-size: 12.5px; color: var(--muted); padding-left: 24px; }
+.rail a:hover { background: var(--sunken); }
+.rail a[aria-current="page"] { background: var(--tint); }
+.rail a[aria-current="page"] b { color: var(--tint-text); font-weight: 700; }
+.rail a[aria-current="page"] b::before { color: var(--tint-text); }
+.rail .src { margin: 10px 12px 4px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+
+.panel { display: grid; gap: 16px; min-width: 0; animation: rise .3s ease-out; }
+@keyframes rise { from { opacity: .3; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .panel { animation: none; } }
+.ph { display: grid; gap: 4px; padding-block: 2px 8px; }
+.ph h2 { font-size: clamp(24px, 2.6vw, 28px); line-height: 1.3; }
+.ph .lead { margin: 6px 0 0; color: var(--text2); font-size: 16px; max-width: 64ch; }
+
+/* 차트 한 칸 */
+.fig { background: var(--card); border-radius: var(--r); padding: 24px 24px 20px; display: grid; gap: 6px; min-width: 0; }
+.fig .desc { margin: 0; font-size: 14.5px; color: var(--text2); max-width: 72ch; }
+.fig .how { margin: 8px 0 0; font-size: 13px; color: var(--muted); max-width: 80ch; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.chart { position: relative; height: 360px; margin-top: 12px; }
+.chart.short { height: 250px; }
+.chart.tall { height: 540px; }
+.chart.xtall { height: 720px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 6px; font-size: 13.5px; color: var(--text2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+.legend i.tri { width: 0; height: 0; border-radius: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 10px solid var(--muted); }
+
+/* 숫자 칸 */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: 12px; }
+.tile { padding: 20px 22px; display: grid; gap: 4px; align-content: start; background: var(--card); border-radius: var(--r); }
+.tile span { order: -1; color: var(--text2); font-size: 14px; font-weight: 500; }
+.tile b { font: 700 28px/1.25 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+.tile small { color: var(--muted); font-size: 13px; }
+
+/* 인사이트 카드 */
+.insights { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 16px; }
+.card { background: var(--card); border-radius: var(--r); padding: 22px; display: grid; gap: 10px; align-content: start; }
+.card .k { justify-self: start; font-size: 12.5px; font-weight: 600; color: var(--tint-text); background: var(--tint); border-radius: 8px; padding: 3px 9px; }
+.card .f { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.6; letter-spacing: -.02em; }
+.card .q { font-size: 14px; color: var(--text2); background: var(--sunken); border-radius: 14px; padding: 12px 14px; }
+.card .q::before { content: "HR 관점"; display: block; font-size: 12.5px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.card.me { grid-column: 1 / -1; padding: 26px; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--s2) 55%, transparent); }
+.card.me .k { color: #fff; background: var(--s2); }
+.card.me .f { font-size: 17px; }
+.card.me .q { background: color-mix(in srgb, var(--s2) 8%, var(--card)); }
+.sechead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.sechead p { margin: 0; color: var(--muted); font-size: 14px; }
+
+/* 표 */
+.scroll { overflow-x: auto; margin-top: 8px; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; font-variant-numeric: tabular-nums; }
+th, td { padding: 13px 12px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+th:first-child, td:first-child { text-align: left; position: sticky; left: 0; background: var(--card); z-index: 1; }
+thead th { color: var(--muted); font-weight: 500; font-size: 13px; position: sticky; top: 0; background: var(--card); }
+th[data-sort] { cursor: pointer; user-select: none; }
+th[data-sort]:hover { color: var(--text); }
+th[data-sort]::after { content: " ↕"; opacity: .35; }
+th.on { color: var(--text); font-weight: 600; }
+th.on::after { content: " ↓"; opacity: 1; color: var(--s1); }
+th.on.asc::after { content: " ↑"; }
+tbody tr:hover td { background: var(--soft); }
+tr.base td { background: color-mix(in srgb, var(--s2) 8%, var(--card)); }
+tr.base td:first-child { font-weight: 700; }
 .up { color: var(--good); } .down { color: var(--bad); }
-.tag { color: var(--muted); font-size: 12px; }
-.chart { position: relative; height: 340px; margin-top: 10px; }
-select { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--text); }
-.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
-.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 6px 16px; margin-top: 10px; font-size: 13px; color: var(--muted); }
-.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-.chip { border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 13px; }
+.tag { color: var(--muted); font-size: 12.5px; font-weight: 400; }
+.cmp { margin-top: 0; font-size: 15px; }
+.cmp td:nth-child(2) { color: var(--text); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.chip { background: var(--sunken); border-radius: 999px; padding: 5px 13px; font-size: 13.5px; font-weight: 500; color: var(--text2); }
+.pickrow { display: flex; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; align-items: flex-end; }
+.note { color: var(--muted); font-size: 13px; margin: 0; max-width: 90ch; }
+
+/* 장 끝: 다음 장으로 */
+.next { display: flex; justify-content: flex-end; margin-top: 8px; }
+.next a { display: inline-flex; gap: 10px; align-items: center; text-decoration: none; padding: 14px 22px; border-radius: 16px; background: var(--s1); color: #fff; font-weight: 600; font-size: 16px; transition: filter .15s, transform .1s; }
+.next a small { color: rgb(255 255 255 / .75); font-weight: 500; font-size: 14px; }
+.next a:hover { filter: brightness(.94); }
+.next a:active { transform: scale(.98); }
+
+@media (max-width: 1080px) {
+  .grid2 { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 900px) {
+  .shell { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .rail { top: env(safe-area-inset-top, 0px); z-index: 5; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; border-radius: 0;
+    margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding: 10px max(16px, env(safe-area-inset-left, 0px));
+    background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(10px); }
+  .rail::-webkit-scrollbar { display: none; }
+  .rail a { padding: 8px 14px; white-space: nowrap; border-radius: 999px; }
+  .rail a[aria-current="page"] { background: var(--text); }
+  .rail a[aria-current="page"] b { color: var(--card); }
+  .rail a small, .rail .src { display: none; }
+  .rail a b::before { display: none; }
+  .top { padding-block: 22px 16px; }
+  .fig { padding: 20px 16px 16px; }
+  .chart.tall { height: 460px; }
+}
+@media (max-width: 520px) {
+  .controls, .field, select { width: 100%; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .tile { padding: 16px; }
+  .tile b { font-size: 22px; }
+  .card { padding: 18px; }
+}
 </style>
 </head>
 <body>
-<main>
-  <h1>채용·인원 대시보드</h1>
-  <div class="sub" id="updated">불러오는 중…</div>
-
-  <div class="tiles" id="tiles"></div>
-
-  <section>
-    <h2>회사별 한눈에 보기</h2>
-    <div class="sub">머리글을 누르면 정렬돼요. 매출·영업이익은 최근 4개 분기 합(별도 재무제표), 직원 수는 가장 최근 공시 기준이에요. 계열사는 따로 공시하는 곳만 따로 줄이 있어요(모회사 숫자에는 안 들어가요). 쿠팡은 미국 공시(SEC)라 연결 기준이고, 달러를 분기 평균 환율로 바꿨어요. 직원 수는 1년에 한 번(물류 인력 포함)이에요.</div>
-    <div class="scroll"><table id="table"></table></div>
-  </section>
-
-  <section>
-    <h2>사업 흐름: 매출 성장 vs 인원 증가 (1년 전 대비)</h2>
-    <div class="legend">
-      <div>↗ 오른쪽 위: 둘 다 늘어남 (확장기)</div>
-      <div>↘ 오른쪽 아래: 매출만 늘어남 (효율화)</div>
-      <div>↖ 왼쪽 위: 인원만 늘어남 (사람에 먼저 투자)</div>
-      <div>↙ 왼쪽 아래: 둘 다 줄어듦 (구조조정 신호)</div>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <p class="eyebrow">IT·플랫폼 회사 인력 공시 모음</p>
+      <h1>채용·인원 대시보드</h1>
+      <div class="updated" id="updated">불러오는 중…</div>
     </div>
-    <div class="chart"><canvas id="quad"></canvas></div>
-  </section>
-
-  <section>
-    <div class="row">
-      <h2>회사별 분기 흐름</h2>
-      <select id="pick"></select>
+    <div class="controls">
+      <label class="field" for="base"><span>기준 회사</span><select id="base"></select></label>
+      <label class="field" for="ind"><span>산업</span><select id="ind"></select></label>
     </div>
-    <div class="sub">막대는 분기 매출, 선은 직원 수예요.</div>
-    <div class="chart"><canvas id="trend"></canvas></div>
-  </section>
+  </header>
 
-  <section>
-    <h2>인원 수준 참고: 실제 직원 수 vs 업계 1인당 매출 기준 인원</h2>
-    <div class="sub">같은 산업 회사들의 1인당 매출 중간값으로 이 회사 매출을 나눈 숫자예요. 사업 방식이 달라 "적정 인원"이 아니라 "업계 안의 위치"로 봐 주세요.</div>
-    <div class="chart"><canvas id="ref"></canvas></div>
-  </section>
+  <div class="shell">
+    <nav class="rail" aria-label="장 목록">
+      <a href="#overview"><b>요약</b><small>핵심 숫자와 HR 관찰</small></a>
+      <a href="#flow"><b>사업·인원</b><small>매출 성장과 인원, 인원 수준</small></a>
+      <a href="#pay"><b>보상·근속</b><small>생산성, 연봉, 근속</small></a>
+      <a href="#hiring"><b>채용·이직</b><small>공고 강도, 입사·퇴사</small></a>
+      <a href="#company"><b>회사 깊이 보기</b><small>한 회사의 분기·월별 흐름</small></a>
+      <a href="#coupang" id="nav-coupang"><b>쿠팡 인력</b><small>법인별 국민연금 가입자</small></a>
+      <a href="#table"><b>전체 표</b><small>모든 숫자, 정렬 가능</small></a>
+      <p class="src">위에서 고른 기준 회사는 모든 차트에서 주황색이에요. 고른 회사·산업은 이 브라우저에 기억돼요.</p>
+    </nav>
 
-  <section>
-    <h2>DART에 직원 수 자료가 없는 회사</h2>
-    <div class="sub">감사보고서만 내는 비상장사예요. 채용공고 숫자만 보여 드려요.</div>
-    <div class="chips" id="audit"></div>
-  </section>
+    <main>
+      <!-- 1. 요약 -->
+      <section class="panel" id="ch-overview" data-ch="overview" aria-labelledby="h-overview">
+        <div class="ph">
+          <p class="eyebrow">DART 공시 · 국민연금 · 채용공고 봇</p>
+          <h2 id="h-overview">요약</h2>
+          <p class="lead">공시 숫자에서 자동으로 뽑은 관찰이에요. 주황 카드는 위에서 고른 기준 회사 이야기예요.</p>
+        </div>
+        <div class="tiles" id="tiles"></div>
+        <div class="insights" id="cards"></div>
+        <div class="next"><a href="#flow"><small>다음 장</small>사업·인원 →</a></div>
+      </section>
 
-  <p class="note">자료: 금융감독원 전자공시(OpenDART) 직원 현황·주요 재무 계정, 채용공고 봇 수집 자료. 직원 수는 그 회사 하나 기준(자회사 제외)이에요.</p>
-</main>
+      <!-- 2. 사업·인원 -->
+      <section class="panel" id="ch-flow" data-ch="flow" aria-labelledby="h-flow" hidden>
+        <div class="ph">
+          <p class="eyebrow">DART 분기보고서 · 최근 4개 분기 합, 1년 전 대비</p>
+          <h2 id="h-flow">사업·인원</h2>
+          <p class="lead">매출이 크는 속도만큼 사람을 늘리고 있는지, 같은 산업과 비교해 사람이 많은 편인지 봐요.</p>
+        </div>
+        <div class="fig">
+          <h3>매출 성장 vs 인원 증가</h3>
+          <p class="desc">점선은 매출과 인원이 같은 속도로 늘어나는 선이에요. 점선 위는 사람이 매출보다 빨리 늘어난 곳, 아래는 적은 인원으로 매출을 키운 곳이에요.</p>
+          <div class="legend"><span><i style="background:var(--s2)"></i>기준 회사</span><span><i style="background:var(--s1)"></i>고른 산업</span><span><i style="background:var(--dim)"></i>다른 산업</span><span><i class="tri"></i>범위 밖 (실제 값을 적음)</span></div>
+          <div class="chart tall"><canvas id="quad" role="img" aria-label="회사별 매출 증감률과 인원 증감률 산점도"></canvas></div>
+          <p class="how">점 크기는 직원 수예요. 0 근처에 회사가 몰려 있어서 0 근처를 넓게, ±50%·±100% 같은 큰 값은 좁게 그렸어요.</p>
+        </div>
+        <div class="fig">
+          <h3>인원 수준: 업계 기준보다 몇 % 많나</h3>
+          <p class="desc">같은 산업의 1인당 매출 중간값으로 계산한 인원과 실제 인원을 비교했어요. "적정 인원"이 아니라 업계 안에서의 위치로 봐 주세요.</p>
+          <div class="legend"><span><i style="background:var(--s1)"></i>업계 기준보다 많음</span><span><i style="background:var(--s3)"></i>업계 기준보다 적음</span><span><i style="background:var(--s2)"></i>기준 회사</span></div>
+          <div class="chart tall"><canvas id="ref" role="img" aria-label="회사별 업계 기준 대비 인원 막대"></canvas></div>
+        </div>
+        <div class="next"><a href="#pay"><small>다음 장</small>보상·근속 →</a></div>
+      </section>
+
+      <!-- 3. 보상·근속 -->
+      <section class="panel" id="ch-pay" data-ch="pay" aria-labelledby="h-pay" hidden>
+        <div class="ph">
+          <p class="eyebrow">DART 사업보고서 · 직원 현황 (1년에 한 번)</p>
+          <h2 id="h-pay">보상·근속</h2>
+          <p class="lead">버는 만큼 주는지, 많이 주는 곳에서 사람이 오래 머무는지 봐요.</p>
+        </div>
+        <div class="legend"><span><i style="background:var(--s2)"></i>기준 회사</span><span><i style="background:var(--s1)"></i>고른 산업</span><span><i style="background:var(--dim)"></i>다른 산업</span></div>
+        <div class="grid2">
+          <div class="fig">
+            <h3>생산성 대비 보상</h3>
+            <p class="desc">가로는 1인당 매출(로그 눈금), 세로는 평균 연봉이에요. 왼쪽 위일수록 버는 것에 비해 많이 주는 곳이에요.</p>
+            <div class="chart"><canvas id="prod" role="img" aria-label="1인당 매출과 평균 연봉 산점도"></canvas></div>
+          </div>
+          <div class="fig">
+            <h3>보상 vs 근속</h3>
+            <p class="desc">가로는 평균 연봉, 세로는 평균 근속연수예요. 오른쪽 아래는 많이 주는데도 오래 안 머무는 곳이에요.</p>
+            <div class="chart"><canvas id="ten" role="img" aria-label="평균 연봉과 평균 근속 산점도"></canvas></div>
+          </div>
+        </div>
+        <div class="next"><a href="#hiring"><small>다음 장</small>채용·이직 →</a></div>
+      </section>
+
+      <!-- 4. 채용·이직 -->
+      <section class="panel" id="ch-hiring" data-ch="hiring" aria-labelledby="h-hiring" hidden>
+        <div class="ph">
+          <p class="eyebrow">채용공고 봇 (매일) · 국민연금 가입 사업장 (매달)</p>
+          <h2 id="h-hiring">채용·이직</h2>
+          <p class="lead">지금 누가 사람을 적극적으로 뽑는지, 사람이 얼마나 자주 들어오고 나가는지 봐요.</p>
+        </div>
+        <div class="fig">
+          <h3>입사·퇴사: 한 달에 몇 %가 들어오고 나가나</h3>
+          <p class="desc">최근 12개월 평균이에요. 한 달 입사 수 ÷ 가입자 수, 한 달 퇴사 수 ÷ 가입자 수예요. ×12 하면 대략 1년 이직률이에요.</p>
+          <div class="legend"><span><i style="background:var(--s1)"></i>입사 비율</span><span><i style="background:var(--s2)"></i>퇴사 비율</span><span>▶ 기준 회사</span></div>
+          <div class="chart xtall"><canvas id="turnbar" role="img" aria-label="회사별 한 달 입사·퇴사 비율 막대"></canvas></div>
+          <p class="how">퇴사에는 계열사로 옮긴 사람, 60세가 된 사람, 일을 덜 하게 된 일용직도 들어가요. 법인을 나누거나 합친 달에는 숫자가 크게 튈 수 있어요. 쿠팡은 물류 현장 인력 때문에 비율이 훨씬 높아서 "쿠팡 인력" 장에 따로 뒀어요.</p>
+        </div>
+        <div class="fig">
+          <h3>채용 강도: 직원 100명당 진행 중인 공고</h3>
+          <p class="desc">지금 열려 있는 공고 수를 직원 수로 나눴어요. 높을수록 지금 사람을 적극적으로 뽑는 곳이에요.</p>
+          <div class="legend"><span><i style="background:var(--s1)"></i>회사</span><span><i style="background:var(--s2)"></i>기준 회사</span></div>
+          <div class="chart tall"><canvas id="hirebar" role="img" aria-label="회사별 직원 100명당 공고 수 막대"></canvas></div>
+        </div>
+        <div class="next"><a href="#company"><small>다음 장</small>회사 깊이 보기 →</a></div>
+      </section>
+
+      <!-- 5. 회사 깊이 보기 -->
+      <section class="panel" id="ch-company" data-ch="company" aria-labelledby="h-company" hidden>
+        <div class="ph">
+          <p class="eyebrow">DART 분기보고서 · 국민연금 월별</p>
+          <div class="pickrow">
+            <h2 id="h-company">회사 깊이 보기</h2>
+            <label class="field" for="pick"><span>볼 회사</span><select id="pick"></select></label>
+          </div>
+          <p class="lead">한 회사를 골라 분기별 매출·인원과 달마다 들어오고 나간 사람을 봐요. 기준 회사를 바꾸면 여기도 같이 바뀌어요.</p>
+        </div>
+        <div class="fig">
+          <h3 id="cmp-title">중간값과 비교</h3>
+          <div class="scroll"><table class="cmp" id="cmp"></table></div>
+        </div>
+        <div class="grid2">
+          <div class="fig"><h3>분기 매출·영업이익</h3>
+            <div class="legend"><span><i style="background:var(--s1)"></i>매출</span><span><i style="background:var(--s2)"></i>영업이익</span></div>
+            <div class="chart short"><canvas id="t-rev" role="img" aria-label="분기 매출과 영업이익 막대"></canvas></div></div>
+          <div class="fig"><h3>직원 수</h3><div class="chart short"><canvas id="t-emp" role="img" aria-label="분기 직원 수 선"></canvas></div></div>
+        </div>
+        <div class="fig" id="t-turn-box"><h3>달마다 들어오고 나간 사람 (국민연금)</h3>
+          <div class="legend"><span><i style="background:var(--s1)"></i>입사</span><span><i style="background:var(--s2)"></i>퇴사</span></div>
+          <div class="chart short"><canvas id="t-turn" role="img" aria-label="달별 입사·퇴사 인원 막대"></canvas></div></div>
+        <div class="next"><a href="#coupang" id="next-coupang"><small>다음 장</small>쿠팡 인력 →</a></div>
+      </section>
+
+      <!-- 6. 쿠팡 -->
+      <section class="panel" id="ch-coupang" data-ch="coupang" aria-labelledby="h-coupang" hidden>
+        <div class="ph">
+          <p class="eyebrow">국민연금 가입 사업장 (공공데이터포털, 매달) · 법인별</p>
+          <h2 id="h-coupang">쿠팡 인력</h2>
+          <p class="lead">쿠팡은 한국 법인이 사업보고서를 내지 않아서 국민연금 가입자를 법인별로 나눠 봤어요. 물류센터 = 쿠팡풀필먼트서비스, 배송 = 쿠팡로지스틱스서비스, 본사·사무 = 쿠팡(주)예요.</p>
+        </div>
+        <div class="tiles" id="cp-tiles"></div>
+        <div class="grid2">
+          <div class="fig"><h3>부문별 가입자 수</h3>
+            <div class="legend"><span><i style="background:var(--s1)"></i>물류센터</span><span><i style="background:var(--s2)"></i>배송</span><span><i style="background:var(--s3)"></i>본사·사무</span><span><i style="background:var(--s4)"></i>기타 계열사</span></div>
+            <div class="chart"><canvas id="cp-mem" role="img" aria-label="쿠팡 부문별 국민연금 가입자 누적 막대"></canvas></div></div>
+          <div class="fig"><h3>물류센터 월 입사·퇴사 비율</h3>
+            <div class="legend"><span><i style="background:var(--s1)"></i>입사 비율</span><span><i style="background:var(--s2)"></i>퇴사 비율</span></div>
+            <div class="chart"><canvas id="cp-turn" role="img" aria-label="쿠팡 물류센터 월별 입사·퇴사 비율 선"></canvas></div></div>
+        </div>
+        <p class="note">가입자 = 정규직 + 계약직 + 한 달 8일·60시간 넘게 일하는 일용직이에요. 짧은 일용직과 60세 이상은 빠져서 미국 공시 직원 수(108,000명)보다 적어요.</p>
+        <div class="next"><a href="#table"><small>다음 장</small>전체 표 →</a></div>
+      </section>
+
+      <!-- 7. 전체 표 -->
+      <section class="panel" id="ch-table" data-ch="table" aria-labelledby="h-table" hidden>
+        <div class="ph">
+          <p class="eyebrow">모든 회사 · 머리글을 누르면 정렬</p>
+          <h2 id="h-table">전체 표</h2>
+          <p class="lead">매출·영업이익은 최근 4개 분기 합(별도 재무제표), 직원 수는 가장 최근 공시 기준이에요. 따로 공시하는 계열사는 줄이 따로 있어요(모회사 숫자에는 안 들어가요).</p>
+        </div>
+        <div class="fig">
+          <div class="scroll"><table id="table"></table></div>
+        </div>
+        <div class="fig">
+          <h3>DART에 직원 수 자료가 없는 회사</h3>
+          <p class="desc">감사보고서만 내는 비상장사예요. 채용공고 숫자만 보여 드려요.</p>
+          <div class="chips" id="audit"></div>
+        </div>
+        <p class="note">자료: 금융감독원 전자공시(OpenDART) 직원 현황·주요 재무 계정, 미국 SEC 공시(쿠팡: 연결 기준, 달러를 분기 평균 환율로 바꿈, 직원 수는 1년에 한 번·물류 인력 포함), 국민연금공단 가입 사업장 내역(공공데이터포털), 채용공고 봇 수집 자료. 직원 수는 그 회사 하나 기준(자회사 제외)이에요.</p>
+        <div class="next"><a href="#overview"><small>처음으로</small>요약 ↑</a></div>
+      </section>
+    </main>
+  </div>
+</div>
 <script>
-const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-const won = v => v == null ? "–" : Math.abs(v) >= 1e12 ? (v / 1e12).toFixed(2) + "조" : Math.abs(v) >= 1e8 ? Math.round(v / 1e8).toLocaleString() + "억" : Math.round(v / 1e4).toLocaleString() + "만";
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const won = v => v == null ? "–" : Math.abs(v) >= 1e12 ? (v / 1e12).toFixed(1) + "조" : Math.abs(v) >= 1e8 ? Math.round(v / 1e8).toLocaleString() + "억" : Math.round(v / 1e4).toLocaleString() + "만";
+const man = v => v == null ? "–" : Math.round(v / 1e4).toLocaleString() + "만";
 const n = v => v == null ? "–" : v.toLocaleString();
-const pct = v => v == null ? "–" : `<span class="${v > 0 ? "up" : v < 0 ? "down" : ""}">${v > 0 ? "+" : ""}${v}%</span>`;
+const sg = v => v == null ? "–" : (v > 0 ? "+" : "") + v + "%";
+const pct = v => v == null ? "–" : `<span class="${v > 0 ? "up" : v < 0 ? "down" : ""}">${sg(v)}</span>`;
+const median = a => { const s = a.filter(x => x != null).sort((x, y) => x - y); if (!s.length) return null; const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+const names = list => list.map(c => c.name).join(", ");
 
-fetch("data.json").then(r => r.json()).then(d => {
-  document.getElementById("updated").textContent = `${d.updated} 업데이트 · DART 자료 ${d.companies.length}개 회사`;
-  const cs = d.companies;
+// ── 장 넘기기: 한 번에 한 장만 보이고, 주소(#flow 등)와 이 브라우저에 기억한다 ──
+const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } },
+                set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+const charts = {};
+const make = (id, cfg) => { charts[id]?.destroy(); charts[id] = new Chart(document.getElementById(id), cfg); };
+const panels = [...document.querySelectorAll(".panel")];
+function show(id, jump) {
+  const p = panels.find(p => p.dataset.ch === id && !p.dataset.off);
+  if (!p) id = "overview";
+  panels.forEach(p => p.hidden = p.dataset.ch !== id);
+  document.querySelectorAll(".rail a").forEach(a => a.getAttribute("href") === "#" + id ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
+  store.set("ch", id);
+  requestAnimationFrame(() => Object.values(charts).forEach(c => c.resize()));  // 숨어 있던 장의 차트는 보일 때 크기를 다시 잡는다
+  if (jump) { const y = document.querySelector(".shell").getBoundingClientRect().top + scrollY - 8; if (scrollY > y) scrollTo({ top: y }); }
+  const cur = document.querySelector(".rail a[aria-current]"), rail = cur?.parentElement;
+  if (rail && rail.scrollWidth > rail.clientWidth) rail.scrollTo({ left: cur.offsetLeft - 16 });
+}
+addEventListener("hashchange", () => show(location.hash.slice(1), true));
+show(location.hash.slice(1) || store.get("ch") || "overview");
+
+fetch("data.json").then(r => r.json()).then(async d => {
+  try { await document.fonts.ready; } catch {}  // 캔버스 글꼴이 늦게 바뀌지 않게
+  const cs = d.companies, all = [...cs, ...d.audit_only];
+  // 국민연금: 최근 12개월 한 달 평균 입사·퇴사 비율(%)
+  const np = (d.nps && d.nps.companies) || {};
+  cs.forEach(c => {
+    const s = (np[c.key] || []).slice(-12), mem = s.reduce((a, m) => a + m.members, 0);
+    if (!s.length || !mem) return;
+    c.join_rate = +(s.reduce((a, m) => a + m.new, 0) / mem * 100).toFixed(1);
+    c.quit_rate = +(s.reduce((a, m) => a + m.lost, 0) / mem * 100).toFixed(1);
+    c.nps_net = s.reduce((a, m) => a + m.new - m.lost, 0);
+  });
+  const comparable = cs.filter(c => c.fs !== "SEC");  // 쿠팡은 물류 인력까지 들어간 연결 숫자라 중간값 계산에서 뺀다
+  document.getElementById("updated").textContent = `${d.updated} 업데이트 · 공시 숫자가 있는 회사 ${cs.length}곳, 공고만 있는 회사 ${d.audit_only.length}곳`;
   Chart.defaults.color = css("--muted");
-  Chart.defaults.borderColor = css("--line");
-  Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+  Chart.defaults.borderColor = css("--grid");
+  Chart.defaults.font.family = css("--sans");
+  Chart.defaults.font.size = 12;
+  Chart.defaults.plugins.legend.labels.boxWidth = 10;
+  Chart.defaults.plugins.legend.labels.boxHeight = 10;
+  Chart.defaults.plugins.legend.display = false;  // 범례는 차트 위 HTML로 그린다
 
-  const sumEmp = cs.reduce((a, c) => a + (c.employees || 0), 0);
-  const growing = cs.filter(c => c.emp_growth > 0).length;
-  const open = [...cs, ...d.audit_only].reduce((a, c) => a + c.postings.open, 0);
-  const hr = [...cs, ...d.audit_only].reduce((a, c) => a + c.postings.hr, 0);
-  document.getElementById("tiles").innerHTML = [
-    [n(sumEmp) + "명", "DART 회사 직원 합계"],
-    [`${growing}/${cs.length}`, "1년 새 인원이 늘어난 회사"],
-    [n(open) + "개", "지금 진행 중인 공고"],
-    [n(hr) + "개", "그중 HR 공고"],
-  ].map(([b, s]) => `<div class="tile"><b>${b}</b><span>${s}</span></div>`).join("");
+  // 기준 회사·산업 고르기 (이 브라우저에만 기억)
+  const baseSel = document.getElementById("base"), indSel = document.getElementById("ind");
+  baseSel.innerHTML = cs.map(c => `<option value="${c.key}">${esc(c.name)}</option>`).join("");
+  baseSel.value = cs.some(c => c.key === store.get("base")) ? store.get("base") : (cs.find(c => c.key === "musinsa") || cs[0]).key;
+  const industries = [...new Set(cs.map(c => c.industry))];
+  indSel.innerHTML = `<option value="">전체</option>` + industries.map(i => `<option>${esc(i)}</option>`).join("");
+  indSel.value = industries.includes(store.get("ind")) ? store.get("ind") : "";
 
-  // 표
-  const cols = [
-    ["name", "회사", c => `${c.name} <span class="tag">${c.group ? c.group + " 계열" : c.industry}</span>`],
-    ["employees", "직원 수", c => n(c.employees) + `<div class="tag">${c.emp_period}</div>`],
-    ["emp_growth", "인원 증감", c => pct(c.emp_growth)],
-    ["revenue_ttm", "매출", c => won(c.revenue_ttm) + (c.fs === "SEC" ? `<div class="tag">미국 공시·연결·원화 환산</div>` : c.fs === "CFS" ? `<div class="tag">연결</div>` : "")],
-    ["rev_growth", "매출 증감", c => pct(c.rev_growth)],
-    ["rev_per_emp", "1인당 매출", c => won(c.rev_per_emp)],
-    ["op_per_emp", "1인당 영업이익", c => won(c.op_per_emp)],
-    ["avg_salary", "평균 연봉", c => (c.avg_salary == null ? "–" : Math.round(c.avg_salary / 1e4).toLocaleString() + "만") + (c.salary_year ? `<div class="tag">${c.salary_year}년</div>` : "")],
-    ["labor_ratio", "급여/매출", c => c.labor_ratio == null ? "–" : c.labor_ratio + "%"],
-    ["tenure", "평균 근속", c => c.tenure == null ? "–" : c.tenure + "년"],
-    ["contract_ratio", "계약직 비율", c => c.contract_ratio == null ? "–" : c.contract_ratio + "%"],
-    ["open", "진행 중 공고", c => n(c.postings.open) + (c.postings.hr ? ` <span class="tag">HR ${c.postings.hr}</span>` : "")],
-    ["hire_rate", "공고/직원 100명", c => c.employees ? (c.postings.open / c.employees * 100).toFixed(1) : "–"],
-  ];
-  const val = (c, k) => k === "open" ? c.postings.open : k === "hire_rate" ? (c.employees ? c.postings.open / c.employees : null) : c[k];
+
+  function render() {
+    store.set("base", baseSel.value); store.set("ind", indSel.value);
+    const base = cs.find(c => c.key === baseSel.value), ind = indSel.value;
+    const shown = cs.filter(c => !ind || c.industry === ind);
+    const colorOf = c => c === base ? css("--s2") : !ind || c.industry === ind ? css("--s1") : css("--dim");
+    tiles(base); cards(base); quad(base, colorOf); pay(base, colorOf); size(base, shown); hire(base, shown); turn(base, shown); table(base, shown);
+  }
+
+  // ── 위쪽 숫자 ──
+  function tiles(base) {
+    const growing = cs.filter(c => c.emp_growth > 0).length, withG = cs.filter(c => c.emp_growth != null).length;
+    const open = all.reduce((a, c) => a + c.postings.open, 0), hr = all.reduce((a, c) => a + c.postings.hr, 0);
+    const sal = median(comparable.map(c => c.avg_salary));
+    const ten = median(comparable.map(c => c.tenure));
+    document.getElementById("tiles").innerHTML = [
+      [`${growing}/${withG}곳`, "1년 새 인원이 늘어난 회사", `중간값 ${sg(Math.round(median(comparable.map(c => c.emp_growth)) * 10) / 10)}`],
+      [man(sal), "평균 연봉 중간값", base.avg_salary ? `${base.name} ${man(base.avg_salary)}` : `${base.name} 공시 없음`],
+      [ten == null ? "–" : ten.toFixed(1) + "년", "평균 근속 중간값", base.tenure ? `${base.name} ${base.tenure}년` : ""],
+      [n(open) + "개", "지금 진행 중인 공고", `그중 HR ${n(hr)}개`],
+    ].map(([b, s, m]) => `<div class="tile"><b>${b}</b><span>${s}</span><small>${m || ""}</small></div>`).join("");
+  }
+
+  // ── HR 인사이트 카드 ──
+  function cards(base) {
+    const out = [], me = [];
+    const top = (list, key, k = 3, asc = false) => list.filter(c => c[key] != null).sort((a, b) => asc ? a[key] - b[key] : b[key] - a[key]).slice(0, k);
+    const g = comparable.filter(c => c.emp_growth != null);
+    const fast = top(g.filter(c => c.emp_growth >= 10), "emp_growth");
+    if (fast.length) out.push(["인재 경쟁", `사람을 가장 빨리 늘리는 곳: ${fast.map(c => `${c.name} ${sg(c.emp_growth)}`).join(", ")}`,
+      "같은 직무 경력자를 두고 경쟁하는 회사들이에요. 우리 핵심 인력에게 연락이 갈 가능성이 높으니, 이탈 위험이 큰 사람(성과 높고 보상이 시장보다 낮은 사람)을 먼저 점검해 보세요."]);
+    const cut = top(g.filter(c => c.emp_growth <= -5), "emp_growth", 3, true);
+    if (cut.length) out.push(["채용 기회", `인원이 줄어든 곳: ${cut.map(c => `${c.name} ${sg(c.emp_growth)}`).join(", ")}`,
+      "조직 개편이나 희망퇴직이 있었을 수 있어요. 이 회사 출신 경력자가 시장에 나올 수 있으니, 필요한 직무가 겹치면 소싱 대상으로 볼 만해요."]);
+    const over = comparable.filter(c => c.emp_growth != null && c.rev_growth != null && c.emp_growth - c.rev_growth >= 10)
+      .sort((a, b) => (b.emp_growth - b.rev_growth) - (a.emp_growth - a.rev_growth)).slice(0, 3);
+    if (over.length) out.push(["생산성 주의", `매출보다 인원이 10%p 넘게 빨리 늘어난 곳: ${over.map(c => `${c.name}(인원 ${sg(c.emp_growth)}, 매출 ${sg(c.rev_growth)})`).join(", ")}`,
+      "사람에 먼저 투자한 단계예요. 매출이 따라오지 않으면 다음 해 채용 동결이 오기 쉬워서, 이 회사들의 채용 공고 수가 줄어드는지 같이 보면 좋아요."]);
+    const sal = median(comparable.map(c => c.avg_salary)), ten = median(comparable.map(c => c.tenure));
+    const leaky = comparable.filter(c => c.avg_salary > sal && c.tenure != null && c.tenure < ten).sort((a, b) => a.tenure - b.tenure).slice(0, 4);
+    if (leaky.length) out.push(["보상과 정착", `연봉은 중간값(${man(sal)}) 이상인데 근속은 중간값(${ten.toFixed(1)}년)보다 짧은 곳: ${leaky.map(c => `${c.name} ${c.tenure}년`).join(", ")}`,
+      "돈만으로는 사람을 붙잡기 어렵다는 신호예요. 다만 최근에 사람을 많이 뽑은 회사도 근속이 짧게 나오니, 인원 증가율과 함께 보세요."]);
+    const labor = top(comparable.filter(c => c.labor_ratio != null && c.labor_ratio < 100), "labor_ratio");
+    if (labor.length) out.push(["인건비 부담", `급여 총액이 매출에서 차지하는 비율이 높은 곳: ${labor.map(c => `${c.name} ${c.labor_ratio}%`).join(", ")}`,
+      "이 비율이 높으면 연봉을 올리거나 사람을 늘릴 여력이 적어요. 연봉 협상과 보상 정책에서 회사 쪽 제약이 큰 곳이에요."]);
+    const busy = top(cs.filter(c => c.employees >= 100).map(c => ({ ...c, rate: +(c.postings.open / c.employees * 100).toFixed(1) })), "rate");
+    if (busy.length) out.push(["채용 강도", `직원 100명당 열린 공고가 많은 곳: ${busy.map(c => `${c.name} ${c.rate}개`).join(", ")}`,
+      "지금 채용 시장에서 가장 적극적인 회사들이에요. 같은 후보자를 두고 부딪힐 가능성이 높으니, 제안 속도와 조건을 이 회사들과 비교해 보세요."]);
+    const qs = comparable.filter(c => c.quit_rate != null), qmed = median(qs.map(c => c.quit_rate));
+    const churn = top(qs.filter(c => c.quit_rate > qmed), "quit_rate");
+    if (churn.length) out.push(["이직이 잦은 곳", `한 달 퇴사 비율이 높은 곳: ${churn.map(c => `${c.name} ${c.quit_rate}%`).join(", ")} (중간값 ${qmed}%, 최근 12개월 국민연금)`,
+      "사람이 자주 바뀌는 곳이에요. 이 회사 출신 경력자는 시장에 자주 나오니 소싱하기 쉬운 대신, 우리 회사로 와서도 빨리 떠날 수 있어요. 면접에서 이직 이유를 꼭 들어 보세요. 법인 분할·계열사 이동이 있었던 해에는 비율이 부풀 수 있어요."]);
+    const outflow = qs.filter(c => c.nps_net < 0 && c.employees).sort((a, b) => a.nps_net / a.employees - b.nps_net / b.employees).slice(0, 3);
+    if (outflow.length) out.push(["나가는 사람이 더 많은 곳", `최근 12개월 퇴사가 입사보다 많았던 곳: ${outflow.map(c => `${c.name} ${n(c.nps_net)}명`).join(", ")}`,
+      "채우는 것보다 나가는 게 많다는 건 채용을 줄였거나 사람이 빠지는 중이라는 뜻이에요. 남은 사람의 업무량이 늘어나는 시기라, 이 회사 사람들이 이직을 고민할 가능성이 커요."]);
+    const cp = (d.nps && d.nps.coupang) || [];
+    const last = cp.at(-1)?.parts?.["물류센터"];
+    if (last) out.push(["쿠팡 물류", `물류센터 가입자 ${n(last.members)}명 중 ${cp.at(-1).m}에 ${n(last.lost)}명이 나가고 ${n(last.new)}명이 들어왔어요 (퇴사 ${(last.lost / last.members * 100).toFixed(1)}%)`,
+      "현장 인력은 한 달에 열에 한두 명이 바뀔 만큼 회전이 빨라요. 같은 지역 물류·현장 채용을 한다면 쿠팡이 가장 큰 경쟁 상대예요."]);
+
+    // 기준 회사
+    const peers = comparable.filter(c => c.industry === base.industry && c !== base);
+    const rank = (key, list = comparable) => { const s = list.filter(c => c[key] != null).sort((a, b) => b[key] - a[key]); const i = s.indexOf(base); return i < 0 ? null : `${s.length}곳 중 ${i + 1}위`; };
+    const facts = [];
+    if (base.emp_growth != null) facts.push(`인원 ${sg(base.emp_growth)} (${rank("emp_growth")})`);
+    if (base.avg_salary) facts.push(`평균 연봉 ${man(base.avg_salary)} (${rank("avg_salary")})`);
+    if (base.tenure != null) facts.push(`근속 ${base.tenure}년 (중간값 ${ten?.toFixed(1)}년)`);
+    if (base.quit_rate != null) facts.push(`한 달 퇴사 ${base.quit_rate}% · 입사 ${base.join_rate}% (퇴사 많은 순 ${rank("quit_rate")})`);
+    if (base.rev_per_emp) facts.push(`1인당 매출 ${won(base.rev_per_emp)} (${base.peer_basis} 중간값 ${won(base.peer_rev_per_emp)})`);
+    let q = "";
+    if (base.emp_growth != null && base.rev_growth != null)
+      q = base.emp_growth > base.rev_growth + 5 ? "매출보다 사람이 빨리 늘고 있어요. 채용 계획을 세울 때 1인당 매출이 떨어지는 속도를 같이 보세요."
+        : base.rev_growth > base.emp_growth + 5 ? "적은 인원으로 매출을 키우고 있어요. 사람 한 명에게 걸리는 일이 늘어나는 중이라 번아웃·이탈 위험을 점검하고, 핵심 직무 충원을 먼저 챙기세요."
+        : "매출과 인원이 비슷한 속도로 움직이고 있어요. 지금 채용 속도는 사업 흐름과 맞는 편이에요.";
+    if (base.avg_salary && sal && base.tenure != null && ten != null)
+      q += base.avg_salary < sal && base.tenure < ten ? " 연봉과 근속이 모두 중간값보다 낮아요. 보상 경쟁력 점검이 먼저예요."
+        : base.avg_salary < sal ? " 연봉은 중간값보다 낮은데 근속은 긴 편이라, 보상 외의 이유(문화·성장 등)로 머무는 사람이 많을 수 있어요." : "";
+    if (peers.length) facts.push(`같은 산업: ${names(peers)}`);
+    me.push([`${base.name} 위치`, facts.join(" · ") || "공시 숫자가 부족해요", q || "비교할 숫자가 더 쌓이면 보여 드릴게요."]);
+
+    document.getElementById("cards").innerHTML = [...me.map(x => [...x, true]), ...out].map(([k, f, q, mine]) =>
+      `<div class="card${mine ? " me" : ""}"><div class="k">${esc(k)}</div><div class="f">${esc(f)}</div><div class="q">${esc(q)}</div></div>`).join("");
+  }
+
+  // 라벨이 겹치지 않게 그리는 플러그인 (겹치면 건너뛰고, 기준 회사는 항상 그린다)
+  const labeler = (list, always) => ({ id: "labels", afterDatasetsDraw(chart) {
+    const ctx = chart.ctx, boxes = []; ctx.save(); ctx.font = "12px " + Chart.defaults.font.family; ctx.fillStyle = css("--text2");
+    const pts = chart.getDatasetMeta(0).data.map((p, i) => ({ p, c: list[i] }))
+      .sort((a, b) => (always(b.c) ? 1 : 0) - (always(a.c) ? 1 : 0) || (b.c.employees || 0) - (a.c.employees || 0));
+    for (const { p, c } of pts) {
+      const text = c.label || c.name, w = ctx.measureText(text).width, r = p.options.radius || 6;
+      let x = p.x + r + 4, y = p.y + 4;
+      if (x + w > chart.chartArea.right) { x = Math.max(chart.chartArea.left, p.x - w); y = p.y + r + 13; }  // 오른쪽 끝이면 점 아래에
+      const box = [x - 2, y - 11, x + w + 2, y + 3];
+      if (!always(c) && boxes.some(b => box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1])) continue;
+      boxes.push(box); ctx.fillStyle = always(c) ? css("--text") : css("--text2"); ctx.fillText(text, x, y);
+    }
+    ctx.restore();
+  } });
+  const zeroGrid = c => c.tick.value === 0 ? css("--muted") : css("--grid");
+
+  // ── 사업 흐름 ──
+  function quad(base, colorOf) {
+    const pts = cs.filter(c => c.rev_growth != null && c.emp_growth != null);
+    // 축은 제곱근 눈금: 0 근처(대부분 회사)는 넓게, ±50%·±100% 같은 큰 값은 좁게 그린다.
+    // ±100%를 넘는 회사는 가장자리에 ▲로 붙이고 실제 값을 적는다
+    const f = v => Math.sign(v) * Math.sqrt(Math.abs(v)), inv = v => Math.sign(v) * v * v;
+    const lim = vals => Math.min(100, [5, 10, 20, 30, 50, 100].find(t => t >= Math.max(...vals.map(Math.abs))) || 100);
+    const xl = lim(pts.map(c => c.rev_growth)), yl = lim(pts.map(c => c.emp_growth));
+    const [x0, x1, y0, y1] = [-f(xl), f(xl), -f(yl), f(yl)];
+    const clip = (v, a, b) => Math.min(b, Math.max(a, v));
+    const maxEmp = Math.max(...pts.map(c => Math.min(c.employees || 0, 20000)));
+    const list = pts.map(c => {
+      const out = Math.abs(c.rev_growth) > xl || Math.abs(c.emp_growth) > yl;
+      return { ...c, x: clip(f(c.rev_growth), x0, x1), y: clip(f(c.emp_growth), y0, y1), out, ref: c,
+               label: out ? `${c.name} (매출 ${sg(c.rev_growth)}, 인원 ${sg(c.emp_growth)})` : c.name };
+    });
+    const marks = l => [-100, -50, -20, -10, -5, 0, 5, 10, 20, 50, 100].filter(v => Math.abs(v) <= l).map(v => ({ value: f(v) }));
+    const axis = (lo, hi, l, text) => ({ min: lo, max: hi, title: { display: true, text }, afterBuildTicks: a => { a.ticks = marks(l); },
+      ticks: { callback: v => { const r = Math.round(inv(v)); return (r > 0 ? "+" : "") + r + "%"; } }, grid: { color: zeroGrid } });
+    make("quad", {
+      type: "scatter",
+      data: { datasets: [{ data: list,
+        backgroundColor: list.map(c => colorOf(c.ref) + (c.ref === base ? "" : "cc")),
+        borderColor: css("--card"), borderWidth: 2,
+        pointStyle: list.map(c => c.out ? "triangle" : "circle"),
+        pointRadius: list.map(c => 5 + 11 * Math.sqrt(Math.min(c.employees || 0, 20000) / maxEmp)),
+        pointHoverRadius: list.map(c => 7 + 11 * Math.sqrt(Math.min(c.employees || 0, 20000) / maxEmp)) },
+        { type: "line", data: [{ x: Math.max(x0, y0), y: Math.max(x0, y0) }, { x: Math.min(x1, y1), y: Math.min(x1, y1) }],
+          borderColor: css("--muted"), borderDash: [5, 5], borderWidth: 1.5, pointRadius: 0, hoverRadius: 0 }] },
+      options: { maintainAspectRatio: false, plugins: { legend: { display: false },
+          tooltip: { filter: x => x.datasetIndex === 0, callbacks: { label: x => {
+            const c = x.raw.ref; return [`${c.name} (${c.industry})`, `매출 ${sg(c.rev_growth)} · 인원 ${sg(c.emp_growth)}`, `직원 ${n(c.employees)}명 · 매출 ${won(c.revenue_ttm)}`]; } } } },
+        scales: { x: axis(x0, x1, xl, "매출 증감률 (1년 전 대비, 0 근처를 넓게 그린 눈금)"), y: axis(y0, y1, yl, "인원 증감률 (1년 전 대비)") } },
+      plugins: [labeler(list, c => c.ref === base || c.out), { id: "corners", beforeDatasetsDraw(chart) {
+        const { left, right, top, bottom } = chart.chartArea, ctx = chart.ctx; ctx.save();
+        ctx.font = "600 12px " + Chart.defaults.font.family; ctx.fillStyle = css("--muted"); ctx.globalAlpha = .8;
+        ctx.textAlign = "right"; ctx.fillText("확장기: 둘 다 늘어남", right - 8, top + 16); ctx.fillText("효율화: 매출만 늘어남", right - 8, bottom - 8);
+        ctx.textAlign = "left"; ctx.fillText("사람에 먼저 투자", left + 8, top + 16); ctx.fillText("축소: 둘 다 줄어듦", left + 8, bottom - 8);
+        ctx.restore(); } }],
+    });
+  }
+
+  // ── 생산성·보상·근속 ──
+  function pay(base, colorOf) {
+    const scatter = (id, list, xs, ys, xTitle, yTitle, xFmt, yFmt, xLog) => make(id, {
+      type: "scatter",
+      data: { datasets: [{ data: list.map(c => ({ x: xs(c), y: ys(c) })), backgroundColor: list.map(c => colorOf(c)),
+        borderColor: css("--card"), borderWidth: 2, pointRadius: list.map(c => c === base ? 8 : 6), pointHoverRadius: 9 }] },
+      options: { maintainAspectRatio: false, plugins: { legend: { display: false },
+          tooltip: { callbacks: { label: x => `${list[x.dataIndex].name}: ${xTitle} ${xFmt(x.raw.x)}, ${yTitle} ${yFmt(x.raw.y)}` } } },
+        scales: { x: { type: xLog ? "logarithmic" : "linear", title: { display: true, text: xTitle }, grid: { color: c => xLog && !c.tick.label ? "transparent" : css("--grid") }, ticks: { maxRotation: 0, autoSkip: false, callback: v => xLog && ![1e8, 2e8, 5e8, 1e9, 2e9, 5e9].includes(v) ? "" : xFmt(v) } },
+                  y: { title: { display: true, text: yTitle }, ticks: { callback: yFmt } } } },
+      plugins: [labeler(list, c => c === base)],
+    });
+    const a = comparable.filter(c => c.rev_per_emp > 0 && c.avg_salary);
+    scatter("prod", a, c => c.rev_per_emp, c => c.avg_salary, "1인당 매출", "평균 연봉", won, man, true);
+    const b = comparable.filter(c => c.avg_salary && c.tenure != null);
+    scatter("ten", b, c => c.avg_salary, c => c.tenure, "평균 연봉", "평균 근속", man, v => v + "년", false);
+  }
+
+  // ── 인원 수준·채용 강도 (가로 막대) ──
+  const hbar = (id, list, vals, fmt, colors, tip, title) => make(id, {
+    type: "bar",
+    data: { labels: list.map(c => c.name), datasets: [{ data: vals, backgroundColor: colors, borderRadius: 4, borderSkipped: false, barPercentage: .8, categoryPercentage: .9 }] },
+    options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: x => tip(list[x.dataIndex], x.raw) } } },
+      scales: { x: { title: { display: !!title, text: title }, ticks: { callback: fmt }, grid: { color: zeroGrid } }, y: { grid: { display: false }, ticks: { autoSkip: false } } } },
+  });
+  function size(base, shown) {
+    const list = shown.filter(c => c.ref_employees && c.employees && c.fs !== "SEC")
+      .map(c => ({ ...c, gap: Math.round((c.employees / c.ref_employees - 1) * 100), ref: c })).sort((a, b) => b.gap - a.gap);
+    const cap = 200;
+    hbar("ref", list, list.map(c => Math.max(-100, Math.min(cap, c.gap))), v => (v > 0 ? "+" : "") + v + "%",
+      list.map(c => c.ref === base ? css("--s2") : c.gap >= 0 ? css("--s1") : css("--s3")),
+      (c, v) => [`실제 ${n(c.employees)}명 · 업계 기준 ${n(c.ref_employees)}명 (${c.gap > 0 ? "+" : ""}${c.gap}%)`, `기준: ${c.peer_basis} 1인당 매출 중간값 ${won(c.peer_rev_per_emp)}`],
+      "업계 기준 인원 대비 (오른쪽 = 더 많음, 200%에서 자름)");
+  }
+  function hire(base, shown) {
+    const list = [...shown].filter(c => c.employees >= 50)
+      .map(c => ({ ...c, rate: +(c.postings.open / c.employees * 100).toFixed(1), ref: c })).sort((a, b) => b.rate - a.rate);
+    hbar("hirebar", list, list.map(c => c.rate), v => v, list.map(c => c.ref === base ? css("--s2") : css("--s1")),
+      c => `공고 ${n(c.postings.open)}개 (HR ${c.postings.hr}) · 직원 ${n(c.employees)}명 → 100명당 ${c.rate}개`, "직원 100명당 공고 수");
+  }
+
+  function turn(base, shown) {
+    const list = shown.filter(c => c.quit_rate != null && c.fs !== "SEC").sort((a, b) => b.quit_rate - a.quit_rate);
+    make("turnbar", { type: "bar",
+      data: { labels: list.map(c => c === base ? "▶ " + c.name : c.name), datasets: [
+        { label: "입사 비율", data: list.map(c => c.join_rate), backgroundColor: css("--s1"), borderRadius: 4, borderSkipped: false, barPercentage: .85, categoryPercentage: .8 },
+        { label: "퇴사 비율", data: list.map(c => c.quit_rate), backgroundColor: css("--s2"), borderRadius: 4, borderSkipped: false, barPercentage: .85, categoryPercentage: .8 }] },
+      options: { indexAxis: "y", maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+        plugins: { legend: { display: false }, tooltip: { callbacks: {
+          title: x => list[x[0].dataIndex].name,
+          label: x => `${x.dataset.label} 한 달 ${x.raw}% (1년이면 약 ${Math.round(x.raw * 12)}%)`,
+          afterBody: x => { const c = list[x[0].dataIndex]; return `12개월 동안 ${c.nps_net >= 0 ? "+" : ""}${n(c.nps_net)}명 (입사 − 퇴사)`; } } } },
+        scales: { x: { title: { display: true, text: "한 달 평균, 가입자 대비 %" }, ticks: { callback: v => v + "%" } },
+                  y: { grid: { display: false }, ticks: { autoSkip: false, color: c => list[c.index] === base ? css("--text") : css("--muted"), font: c => ({ weight: list[c.index] === base ? "700" : "400" }) } } } } });
+  }
+
+  // ── 회사별 분기 흐름 ──
+  const pick = document.getElementById("pick");
+  pick.innerHTML = cs.map(c => `<option value="${c.key}">${esc(c.name)}</option>`).join("");
+  function trend() {
+    const c = cs.find(x => x.key === pick.value), qs = c.quarters.slice(-12);
+    make("t-rev", { type: "bar", data: { labels: qs.map(q => q.p), datasets: [
+        { label: "매출", data: qs.map(q => q.revenue), backgroundColor: css("--s1"), borderRadius: 4 },
+        { label: "영업이익", data: qs.map(q => q.op), backgroundColor: css("--s2"), borderRadius: 4 }] },
+      options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+        plugins: { tooltip: { callbacks: { label: x => `${x.dataset.label} ${won(x.raw)}` } } }, scales: { y: { ticks: { callback: won }, grid: { color: zeroGrid } }, x: { grid: { display: false } } } } });
+    make("t-emp", { type: "line", data: { labels: qs.map(q => q.p), datasets: [
+        { label: "직원 수", data: qs.map(q => q.emp), borderColor: css("--s1"), backgroundColor: css("--s1"), borderWidth: 2, pointRadius: 3, spanGaps: true, tension: .25 }] },
+      options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: x => `직원 ${n(x.raw)}명` } } }, scales: { y: { ticks: { callback: n } }, x: { grid: { display: false } } } } });
+    const ms = (np[c.key] || []).slice(-24);
+    document.getElementById("t-turn-box").hidden = !ms.length;
+    make("t-turn", { type: "bar", data: { labels: ms.map(m => m.m), datasets: [
+        { label: "입사", data: ms.map(m => m.new), backgroundColor: css("--s1"), borderRadius: 4 },
+        { label: "퇴사", data: ms.map(m => m.lost), backgroundColor: css("--s2"), borderRadius: 4 }] },
+      options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+        plugins: { tooltip: { callbacks: { label: x => `${x.dataset.label} ${n(x.raw)}명`, footer: x => `가입자 ${n(ms[x[0].dataIndex].members)}명` } } },
+        scales: { y: { ticks: { callback: n } }, x: { grid: { display: false } } } } });
+    const peers = comparable.filter(x => x.industry === c.industry);
+    const rows = [["인원 증감", c.emp_growth, "emp_growth", sg], ["매출 증감", c.rev_growth, "rev_growth", sg], ["1인당 매출", c.rev_per_emp, "rev_per_emp", won],
+      ["평균 연봉", c.avg_salary, "avg_salary", man], ["평균 근속", c.tenure, "tenure", v => v == null ? "–" : v.toFixed(1) + "년"], ["계약직 비율", c.contract_ratio, "contract_ratio", v => v == null ? "–" : v.toFixed(1) + "%"],
+      ["한 달 퇴사 비율", c.quit_rate, "quit_rate", v => v == null ? "–" : v.toFixed(1) + "%"], ["한 달 입사 비율", c.join_rate, "join_rate", v => v == null ? "–" : v.toFixed(1) + "%"]];
+    document.getElementById("cmp-title").textContent = `${c.name} vs 중간값`;
+    document.getElementById("cmp").innerHTML = `<thead><tr><th>항목</th><th>${esc(c.name)}</th><th>${esc(c.industry)} 중간값 (${peers.length}곳)</th><th>전체 중간값</th></tr></thead><tbody>` +
+      rows.map(([label, v, k, f]) => `<tr><td>${label}</td><td><b>${f(v)}</b></td><td>${f(median(peers.map(x => x[k])))}</td><td>${f(median(comparable.map(x => x[k])))}</td></tr>`).join("") + "</tbody>";
+  }
+  pick.onchange = trend;
+
+  // ── 쿠팡 국민연금 ──
+  function coupang() {
+    const cp = (d.nps && d.nps.coupang) || [];
+    if (!cp.length) {
+      document.getElementById("ch-coupang").dataset.off = "1"; document.getElementById("nav-coupang").hidden = true;
+      const nx = document.getElementById("next-coupang"); nx.href = "#table"; nx.innerHTML = "<small>다음 장</small>전체 표 →";
+      if (location.hash === "#coupang" || store.get("ch") === "coupang") show("overview");
+      return;
+    }
+    const parts = ["물류센터", "배송", "본사·사무", "기타 계열사"], color = [css("--s1"), css("--s2"), css("--s3"), css("--s4")];
+    const last = cp.at(-1), tot = parts.reduce((a, p) => a + (last.parts[p]?.members || 0), 0);
+    const yearAgo = cp.find(m => m.m === `${+last.m.slice(0, 4) - 1}${last.m.slice(4)}`);
+    const lg = last.parts["물류센터"];
+    document.getElementById("cp-tiles").innerHTML = [
+      [n(tot) + "명", `${last.m} 국민연금 가입자 합계`, yearAgo ? `1년 전보다 ${sg(Math.round((tot / parts.reduce((a, p) => a + (yearAgo.parts[p]?.members || 0), 0) - 1) * 1000) / 10)}` : ""],
+      ...parts.slice(0, 3).map(p => [n(last.parts[p]?.members) + "명", p, `전체의 ${((last.parts[p]?.members || 0) / tot * 100).toFixed(0)}%`]),
+      [lg ? (lg.lost / lg.members * 100).toFixed(1) + "%" : "–", "물류센터 한 달 퇴사 비율", lg ? `나감 ${n(lg.lost)} · 들어옴 ${n(lg.new)}` : ""],
+    ].map(([b, s, m]) => `<div class="tile"><b>${b}</b><span>${s}</span><small>${m}</small></div>`).join("");
+    const labels = cp.map(m => m.m);
+    make("cp-mem", { type: "bar", data: { labels, datasets: parts.map((p, i) => ({ label: p, data: cp.map(m => m.parts[p]?.members ?? null), backgroundColor: color[i], borderColor: css("--card"), borderWidth: { top: 2 } })) },
+      options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+        plugins: { tooltip: { callbacks: { label: x => `${x.dataset.label} ${n(x.raw)}명` } } },
+        scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, ticks: { callback: v => v >= 1e4 ? v / 1e4 + "만" : n(v) } } } } });
+    const rate = (m, k) => { const x = m.parts["물류센터"]; return x && x.members ? +(x[k] / x.members * 100).toFixed(1) : null; };
+    make("cp-turn", { type: "line", data: { labels, datasets: [
+        { label: "입사 비율", data: cp.map(m => rate(m, "new")), borderColor: css("--s1"), backgroundColor: css("--s1"), borderWidth: 2, pointRadius: 2 },
+        { label: "퇴사 비율", data: cp.map(m => rate(m, "lost")), borderColor: css("--s2"), backgroundColor: css("--s2"), borderWidth: 2, pointRadius: 2 }] },
+      options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+        plugins: { tooltip: { callbacks: { label: x => `${x.dataset.label} ${x.raw}%` } } },
+        scales: { y: { beginAtZero: true, ticks: { callback: v => v + "%" } }, x: { grid: { display: false } } } } });
+  }
+
+  // ── 표 ──
   let sortKey = "employees", desc = true;
-  const table = document.getElementById("table");
-  function draw() {
-    const rows = [...cs].sort((a, b) => {
+  function table(base, shown) {
+    const cols = [
+      ["name", "회사", c => `${esc(c.name)} <span class="tag">${c.group ? esc(c.group) + " 계열" : esc(c.industry)}</span>`],
+      ["employees", "직원 수", c => n(c.employees) + `<div class="tag">${c.emp_period}</div>`],
+      ["emp_growth", "인원 증감", c => pct(c.emp_growth)],
+      ["revenue_ttm", "매출", c => won(c.revenue_ttm) + (c.fs === "SEC" ? `<div class="tag">미국 공시·연결·원화 환산</div>` : c.fs === "CFS" ? `<div class="tag">연결</div>` : "")],
+      ["rev_growth", "매출 증감", c => pct(c.rev_growth)],
+      ["rev_per_emp", "1인당 매출", c => won(c.rev_per_emp)],
+      ["op_per_emp", "1인당 영업이익", c => won(c.op_per_emp)],
+      ["avg_salary", "평균 연봉", c => man(c.avg_salary) + (c.salary_year ? `<div class="tag">${c.salary_year}년</div>` : "")],
+      ["labor_ratio", "급여/매출", c => c.labor_ratio == null ? "–" : c.labor_ratio + "%"],
+      ["tenure", "평균 근속", c => c.tenure == null ? "–" : c.tenure + "년"],
+      ["contract_ratio", "계약직 비율", c => c.contract_ratio == null ? "–" : c.contract_ratio + "%"],
+      ["quit_rate", "월 퇴사 비율", c => c.quit_rate == null ? "–" : c.quit_rate + "%" + `<div class="tag">입사 ${c.join_rate}%</div>`],
+      ["open", "진행 중 공고", c => n(c.postings.open) + (c.postings.hr ? ` <span class="tag">HR ${c.postings.hr}</span>` : "")],
+      ["hire_rate", "공고/직원 100명", c => c.employees ? (c.postings.open / c.employees * 100).toFixed(1) : "–"],
+    ];
+    const val = (c, k) => k === "open" ? c.postings.open : k === "hire_rate" ? (c.employees ? c.postings.open / c.employees : null) : c[k];
+    const el = document.getElementById("table");
+    const rows = [...shown].sort((a, b) => {
       const x = val(a, sortKey), y = val(b, sortKey);
       if (x == null) return 1; if (y == null) return -1;
       return (typeof x === "string" ? x.localeCompare(y) : x - y) * (desc ? -1 : 1);
     });
-    table.innerHTML = `<thead><tr>${cols.map(([k, h]) => `<th data-sort="${k}">${h}</th>`).join("")}</tr></thead>
-      <tbody>${rows.map(c => `<tr>${cols.map(([, , f]) => `<td>${f(c)}</td>`).join("")}</tr>`).join("")}</tbody>`;
-    table.querySelectorAll("th").forEach(th => th.onclick = () => {
-      desc = sortKey === th.dataset.sort ? !desc : true; sortKey = th.dataset.sort; draw();
+    el.innerHTML = `<thead><tr>${cols.map(([k, h]) => `<th data-sort="${k}"${k === sortKey ? ` class="on${desc ? "" : " asc"}"` : ""}>${h}</th>`).join("")}</tr></thead>
+      <tbody>${rows.map(c => `<tr class="${c === base ? "base" : ""}">${cols.map(([, , f]) => `<td>${f(c)}</td>`).join("")}</tr>`).join("")}</tbody>`;
+    el.querySelectorAll("th").forEach(th => th.onclick = () => {
+      desc = sortKey === th.dataset.sort ? !desc : true; sortKey = th.dataset.sort; table(base, shown);
     });
   }
-  draw();
-
-  // 사분면
-  const pts = cs.filter(c => c.rev_growth != null && c.emp_growth != null);
-  new Chart(document.getElementById("quad"), {
-    type: "scatter",
-    data: { datasets: [{ data: pts.map(c => ({ x: c.rev_growth, y: c.emp_growth, name: c.name })),
-      backgroundColor: css("--accent"), pointRadius: 7, pointHoverRadius: 9 }] },
-    options: { maintainAspectRatio: false, plugins: { legend: { display: false },
-        tooltip: { callbacks: { label: x => `${x.raw.name}: 매출 ${x.raw.x}%, 인원 ${x.raw.y}%` } } },
-      scales: { x: { title: { display: true, text: "매출 증감 %" }, grid: { color: c => c.tick.value === 0 ? css("--muted") : css("--line") } },
-                y: { title: { display: true, text: "인원 증감 %" }, grid: { color: c => c.tick.value === 0 ? css("--muted") : css("--line") } } } },
-    plugins: [{ id: "labels", afterDatasetsDraw(chart) {
-      const ctx = chart.ctx; ctx.save(); ctx.fillStyle = css("--text"); ctx.font = "12px " + Chart.defaults.font.family;
-      chart.getDatasetMeta(0).data.forEach((p, i) => ctx.fillText(pts[i].name, p.x + 9, p.y + 4)); ctx.restore();
-    } }],
-  });
-
-  // 회사별 분기 흐름
-  const pick = document.getElementById("pick");
-  pick.innerHTML = cs.map((c, i) => `<option value="${i}">${c.name}</option>`).join("");
-  let trend;
-  function drawTrend() {
-    const c = cs[pick.value], qs = c.quarters;
-    trend?.destroy();
-    trend = new Chart(document.getElementById("trend"), {
-      data: { labels: qs.map(q => q.p), datasets: [
-        { type: "bar", label: "분기 매출", data: qs.map(q => q.revenue), backgroundColor: css("--accent"), yAxisID: "y", borderRadius: 3 },
-        { type: "line", label: "직원 수", data: qs.map(q => q.emp), borderColor: css("--accent2"), backgroundColor: css("--accent2"), yAxisID: "y2", spanGaps: true, tension: .25 },
-      ] },
-      options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
-        plugins: { tooltip: { callbacks: { label: x => x.dataset.yAxisID === "y" ? `매출 ${won(x.raw)}` : `직원 ${n(x.raw)}명` } } },
-        scales: { y: { ticks: { callback: won }, title: { display: true, text: "매출" } },
-                  y2: { position: "right", grid: { display: false }, title: { display: true, text: "직원 수" } } } },
-    });
-  }
-  pick.onchange = drawTrend; drawTrend();
-
-  // 참고 인원
-  const rs = cs.filter(c => c.ref_employees && c.employees);
-  new Chart(document.getElementById("ref"), {
-    type: "bar",
-    data: { labels: rs.map(c => c.name), datasets: [
-      { label: "실제 직원 수", data: rs.map(c => c.employees), backgroundColor: css("--accent"), borderRadius: 3 },
-      { label: "업계 기준 참고 인원", data: rs.map(c => c.ref_employees), backgroundColor: css("--accent2"), borderRadius: 3 },
-    ] },
-    options: { maintainAspectRatio: false, plugins: { tooltip: { callbacks: {
-      afterBody: x => { const c = rs[x[0].dataIndex]; return `기준: ${c.peer_basis} 1인당 매출 중간값 ${won(c.peer_rev_per_emp)}`; } } } } },
-  });
 
   document.getElementById("audit").innerHTML = d.audit_only.map(c =>
-    `<span class="chip">${c.name} · 공고 ${c.postings.open}${c.postings.hr ? ` (HR ${c.postings.hr})` : ""}</span>`).join("");
+    `<span class="chip">${esc(c.name)} · 공고 ${c.postings.open}${c.postings.hr ? ` (HR ${c.postings.hr})` : ""}</span>`).join("");
+
+  baseSel.onchange = () => { pick.value = baseSel.value; trend(); render(); };
+  indSel.onchange = render;
+  pick.value = baseSel.value;
+  render(); trend(); coupang();
 });
 </script>
 </body>
