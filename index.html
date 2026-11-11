@@ -150,6 +150,28 @@ tr.base td:first-child { font-weight: 700; }
 .next a:hover { filter: brightness(.94); }
 .next a:active { transform: scale(.98); }
 
+/* 조직도 */
+.org-wrap { overflow-x: auto; margin-top: 12px; -webkit-overflow-scrolling: touch; }
+.org-wrap svg { display: block; font-family: var(--sans); }
+.ob { cursor: pointer; }
+.ob:focus { outline: none; }
+.ob:hover rect.bx { filter: brightness(.97); }
+.ob:focus-visible rect.bx, .ob.sel rect.bx { stroke: var(--s2); stroke-width: 2.5; }
+.legend i.dash { width: 18px; height: 0; border-radius: 0; border-top: 2px dashed var(--muted); }
+.org-jobs { list-style: none; margin: 4px 0 0; padding: 0; }
+.org-jobs li { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 2px 14px; padding: 11px 0; border-bottom: 1px solid var(--line); align-items: baseline; font-size: 14.5px; }
+.org-jobs li:last-child { border-bottom: 0; }
+.org-jobs time { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; }
+.org-jobs a { text-decoration: none; color: var(--text); }
+.org-jobs a:hover { color: var(--ink); }
+.org-jobs .pth { grid-column: 2 / -1; color: var(--muted); font-size: 12.5px; }
+.ost { font-size: 12.5px; font-weight: 600; border-radius: 8px; padding: 2px 8px; white-space: nowrap; }
+.ost.o { color: var(--tint-text); background: var(--tint); }
+.ost.c { color: var(--muted); background: var(--sunken); }
+.org-head { display: flex; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; align-items: baseline; }
+.org-head button { font: 600 13.5px var(--sans); border: 0; border-radius: 10px; padding: 7px 12px; background: var(--sunken); color: var(--text2); cursor: pointer; }
+@media (max-width: 520px) { .org-jobs li { grid-template-columns: minmax(0, 1fr) auto; } .org-jobs time { grid-column: 1 / -1; } }
+
 @media (max-width: 1080px) {
   .grid2 { grid-template-columns: minmax(0, 1fr); }
 }
@@ -199,6 +221,7 @@ tr.base td:first-child { font-weight: 700; }
       <a href="#hiring"><b>채용·이직</b><small>공고 강도, 입사·퇴사</small></a>
       <a href="#company"><b>회사 깊이 보기</b><small>한 회사의 분기·월별 흐름</small></a>
       <a href="#coupang" id="nav-coupang"><b>쿠팡 인력</b><small>법인별 국민연금 가입자</small></a>
+      <a href="#org" id="nav-org"><b>조직도</b><small>공고로 본 부서별 채용</small></a>
       <a href="#table"><b>전체 표</b><small>모든 숫자, 정렬 가능</small></a>
       <p class="src">위에서 고른 기준 회사는 모든 차트에서 주황색이에요. 고른 회사·산업은 이 브라우저에 기억돼요.</p>
     </nav>
@@ -328,10 +351,32 @@ tr.base td:first-child { font-weight: 700; }
             <div class="chart"><canvas id="cp-turn" role="img" aria-label="쿠팡 물류센터 월별 입사·퇴사 비율 선"></canvas></div></div>
         </div>
         <p class="note">가입자 = 정규직 + 계약직 + 한 달 8일·60시간 넘게 일하는 일용직이에요. 짧은 일용직과 60세 이상은 빠져서 미국 공시 직원 수(108,000명)보다 적어요.</p>
+        <div class="next"><a href="#org"><small>다음 장</small>조직도 →</a></div>
+      </section>
+
+      <!-- 7. 조직도 (docs/org.json, 공개 저장소로는 안 보냄. 파일이 없으면 이 장은 숨는다) -->
+      <section class="panel" id="ch-org" data-ch="org" aria-labelledby="h-org" hidden>
+        <div class="ph">
+          <p class="eyebrow">회사 채용공고 · 매일 · 토스·당근·크래프톤·카카오·넥슨·쿠팡·무신사</p>
+          <div class="pickrow">
+            <h2 id="h-org">조직도</h2>
+            <label class="field" for="org-pick"><span>볼 회사</span><select id="org-pick"></select></label>
+          </div>
+          <p class="lead">공고 제목과 조직 소개에 적힌 부서 이름으로 그린 조직도예요. 부서를 누르면 그 부서가 언제 어떤 공고를 냈는지 나와요. 처음 보는 부서가 공고에 나오면 다음 날 자동으로 들어가요.</p>
+        </div>
+        <div class="tiles" id="org-tiles"></div>
+        <div class="fig">
+          <h3 id="org-title">조직도</h3>
+          <div class="legend"><span><i style="background:var(--ink)"></i>계열사</span><span><i style="background:var(--tint);box-shadow:inset 0 0 0 1.5px var(--tint-text)"></i>큰 조직</span><span><i style="background:var(--s3)"></i>게임·프로젝트</span><span><i style="background:var(--s2)"></i>수집 시작 뒤 처음 보인 부서</span><span><i class="dash"></i>공고에 위아래가 안 적혀 짐작한 관계</span></div>
+          <div class="org-wrap"><svg id="org-svg" role="img" aria-label="조직도"></svg></div>
+          <p class="how">상자 숫자 = 그 부서(아래 부서 포함)로 붙은 공고 수예요. 열린 공고와 수집한 뒤 마감된 공고를 같이 세요. 공고를 안 낸 부서는 안 보여요.</p>
+        </div>
+        <div class="fig" id="org-list"></div>
+        <p class="note" id="org-note"></p>
         <div class="next"><a href="#table"><small>다음 장</small>전체 표 →</a></div>
       </section>
 
-      <!-- 7. 전체 표 -->
+      <!-- 8. 전체 표 -->
       <section class="panel" id="ch-table" data-ch="table" aria-labelledby="h-table" hidden>
         <div class="ph">
           <p class="eyebrow">모든 회사 · 머리글을 누르면 정렬</p>
@@ -375,6 +420,7 @@ function show(id, jump) {
   panels.forEach(p => p.hidden = p.dataset.ch !== id);
   document.querySelectorAll(".rail a").forEach(a => a.getAttribute("href") === "#" + id ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
   store.set("ch", id);
+  if (id === "org" && window.orgDraw) requestAnimationFrame(() => orgDraw());
   requestAnimationFrame(() => Object.values(charts).forEach(c => c.resize()));  // 숨어 있던 장의 차트는 보일 때 크기를 다시 잡는다
   if (jump) { const y = document.querySelector(".shell").getBoundingClientRect().top + scrollY - 8; if (scrollY > y) scrollTo({ top: y }); }
   const cur = document.querySelector(".rail a[aria-current]"), rail = cur?.parentElement;
@@ -649,7 +695,8 @@ fetch("data.json").then(r => r.json()).then(async d => {
     const cp = (d.nps && d.nps.coupang) || [];
     if (!cp.length) {
       document.getElementById("ch-coupang").dataset.off = "1"; document.getElementById("nav-coupang").hidden = true;
-      const nx = document.getElementById("next-coupang"); nx.href = "#table"; nx.innerHTML = "<small>다음 장</small>전체 표 →";
+      const nx = document.getElementById("next-coupang"), og = !document.getElementById("ch-org").dataset.off;
+      nx.href = og ? "#org" : "#table"; nx.innerHTML = og ? "<small>다음 장</small>조직도 →" : "<small>다음 장</small>전체 표 →";
       if (location.hash === "#coupang" || store.get("ch") === "coupang") show("overview");
       return;
     }
@@ -717,6 +764,144 @@ fetch("data.json").then(r => r.json()).then(async d => {
   pick.value = baseSel.value;
   render(); trend(); coupang();
 });
+
+// ── 조직도: docs/org.json (org.py 가 매일 만든다). 파일이 없으면(공개 페이지) 이 장을 숨긴다 ──
+(() => {
+  const NS = "http://www.w3.org/2000/svg", sec = document.getElementById("ch-org"), pick = document.getElementById("org-pick");
+  const COLW = 250, GAP = 20, IND = 16, HT = { root: 46, ent: 42, div: 34, team: 28 };
+  const HOW = {
+    toss: "토스는 공고 제목에 부서가 없어서, 미리 정리해 둔 부서 이름이 본문의 '소속·합류' 문장에 나오면 그 부서로 붙여요. 위 조직을 모르는 팀은 '상위 조직 미확인' 아래에 모여요.",
+    daangn: "당근은 공고 제목 뒤 '- 조직 (하위 조직)'을 그대로 써요. 공고 대부분에 적혀 있어 가장 정확해요.",
+    krafton: "크래프톤은 제목 앞 [OO Div.] 같은 괄호와 제목의 'OO Team'을 써요. 조직 소개 첫 문장의 'OO 팀은'으로 찾은 팀은 짐작(점선)이에요.",
+    kakao: "카카오는 공고에 부서가 거의 안 적혀서, 조직 소개·본문 앞부분의 'OO팀·실·파트'로 짐작해요(점선). 공고의 절반쯤만 찾았어요.",
+    nexon: "넥슨은 제목 앞 [OO본부]·[게임 이름]과 그 뒤 'OO실'을 써요. 본문 조직 소개의 'OO팀은·OO팀 소속'으로 찾은 더 아래 팀(예: PM팀)은 짐작(점선)이에요. 게임·프로젝트 이름은 초록 줄로 표시했어요.",
+    coupang: "쿠팡은 채용 사이트가 공식으로 주는 부서 이름과 부서의 위아래를 그대로 써요. 부서가 '상시 채용'으로만 적힌 공고는 제목 속 부서 이름으로 짐작(점선)하고, 본문의 한국어 팀 이름도 짐작으로 붙여요."
+    ,musinsa: "무신사는 계열사(무신사 스탠다드·29CM 등)로 먼저 나누고, 조직 소개 첫 문장의 'OO 조직은·X에 소속되어 있는 Y'를 써요. 그런 문장이 없으면 제목 괄호 속 이름으로 짐작(점선)해요."
+  };
+  let O = null;
+  const el = (t, a, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); p && p.appendChild(e); return e; };
+  const all = nd => nd._a || (nd._a = [...nd.j, ...nd.kids.flatMap(all)]);
+  const md = s => s ? s.slice(5).replace("-", ".") : "";
+  const off = () => {
+    sec.dataset.off = "1"; document.getElementById("nav-org").hidden = true;
+    document.querySelectorAll('.next a[href="#org"]').forEach(a => { a.href = "#table"; a.innerHTML = "<small>다음 장</small>전체 표 →"; });
+    if (location.hash === "#org" || store.get("ch") === "org") show("overview");
+  };
+  const cur = () => O.companies.find(c => c.key === pick.value) || O.companies[0];
+  fetch("org.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
+    O = d;
+    pick.innerHTML = d.companies.map(c => `<option value="${c.key}">${esc(c.name)}</option>`).join("");
+    pick.value = store.get("org") || ""; if (!pick.value) pick.value = d.companies[0].key;
+    pick.onchange = () => { store.set("org", pick.value); render(); };
+    window.orgDraw = render;
+    if (!sec.hidden) render();
+    let t; addEventListener("resize", () => { clearTimeout(t); t = setTimeout(() => !sec.hidden && draw(cur()), 150); });
+    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => !sec.hidden && draw(cur()));
+  }).catch(off);
+
+  function render() {
+    if (!O || sec.hidden) return;
+    const c = cur();
+    if (!c._path) {
+      c._path = {}; c._nodes = [];
+      const walk = (nd, p, d) => { const q = [...p, nd.n]; nd.j.forEach(i => c._path[i] = q); if (d) c._nodes.push(nd); nd.kids.forEach(k => walk(k, q, d + 1)); };
+      c.tree.forEach(t => walk(t, [], 0));
+    }
+    const units = c._nodes.filter(u => u.kind !== "unk");
+    const tiles = [["공고", n(c.n_jobs) + "개", md(c.start) + "부터 모음"],
+      ["부서를 찾은 공고", n(c.n_hit) + "개", Math.round(c.n_hit / Math.max(c.n_jobs, 1) * 100) + "%"],
+      ["공고로 찾은 부서", n(units.length) + "개", "짐작 " + units.filter(u => !u.ok).length + "개 포함"],
+      ["수집 뒤 처음 보인 부서", n(units.filter(u => u.new).length) + "개", md(c.start) + " 뒤 첫 공고"]];
+    document.getElementById("org-tiles").innerHTML = tiles.map(([a, b, s]) => `<div class="tile"><b>${b}</b><span>${a}</span><small>${s}</small></div>`).join("");
+    document.getElementById("org-title").textContent = c.name + " 조직도";
+    document.getElementById("org-note").textContent = HOW[c.key] + ` 자료: ${O.updated} 기준. 짐작한 부서와 위 조직을 모르는 부서는 매일 확인 목록(data/org_todo.csv)에 모여요.`;
+    draw(c); list(c, null);
+  }
+
+  function draw(c) {
+    const svg = document.getElementById("org-svg"); svg.innerHTML = "";
+    const multi = c.tree.length > 1;
+    const rootNd = multi ? { n: c.name, j: [], kids: c.tree, ok: true, kind: "root" } : c.tree[0];
+    const groups = multi ? c.tree.map(e => [e, "ent", [c.name]]) : c.tree[0].kids.map(k => [k, "div", [c.name]]);
+    const avail = svg.parentElement.clientWidth || 900;
+    // 계열사가 한 줄에 다 들어가면 가로로 늘어놓고(bus), 아니면 화면 너비에 맞는 칸 수로 아래로 쌓는다
+    const bus = multi && groups.length * (COLW + GAP) - GAP <= avail;
+    const K = bus ? groups.length : Math.max(1, Math.min(groups.length, Math.floor((avail + GAP) / (COLW + GAP))));
+    const CW = Math.max(K === 1 ? 200 : COLW, Math.floor((avail - (K - 1) * GAP) / K));  // 칸을 화면 너비에 맞게 늘리고, 한 칸뿐이면 좁은 화면에 맞게 줄인다
+    const W = K * CW + (K - 1) * GAP;
+    const lines = el("g", {}, svg), boxes = el("g", {}, svg);
+    const ln = (pts, dash) => el("path", { d: "M" + pts.map(p => p.join(",")).join("L"), fill: "none", stroke: css("--dim"), "stroke-width": 1.5, "stroke-dasharray": dash ? "4 4" : "none" }, lines);
+    const nameOf = nd => nd.kind === "unk" ? "상위 조직 미확인" : nd.n;
+
+    function box(x, y, w, h, kind, nd, path) {
+      const b = el("g", { class: "ob", tabindex: 0, role: "button" }, boxes);
+      const unk = nd.kind === "unk";
+      const fill = { root: "--text", ent: "--ink", div: "--tint", team: "--card" }[kind], bd = unk ? "--dim" : kind === "team" ? "--line" : fill;
+      el("rect", { class: "bx", x, y, width: w, height: h, rx: kind === "team" ? 8 : 11, fill: css(unk ? "--sunken" : fill), stroke: css(bd), "stroke-width": 1.2, "stroke-dasharray": unk ? "4 3" : "none" }, b);
+      if (nd.kind === "project") el("rect", { x: x + 1, y: y + 5, width: 3.5, height: h - 10, rx: 1.75, fill: css("--s3") }, b);
+      const fs = { root: 15, ent: 14, div: 13, team: 12.5 }[kind];
+      const fg = unk ? css("--muted") : { root: css("--card"), ent: "#fff", div: css("--tint-text"), team: css("--text") }[kind];
+      const cnt = all(nd).length, cw = String(cnt).length * 7 + 14;
+      const t = el("text", { x: x + 11, y: y + h / 2 + fs * .36, "font-size": fs, "font-weight": kind === "team" ? 500 : 700, fill: fg, "font-style": unk ? "italic" : "normal" }, b);
+      const label = nameOf(nd); t.textContent = label;
+      const room = w - 24 - cw - (nd.new ? 12 : 0);
+      if (t.getComputedTextLength() > room) { let s = label; while (s.length > 1 && t.getComputedTextLength() > room) { s = s.slice(0, -1); t.textContent = s + "…"; } }
+      const dark = kind === "root" || kind === "ent";
+      el("rect", { x: x + w - cw - 6, y: y + (h - 18) / 2, width: cw, height: 18, rx: 9, fill: dark ? "rgba(255,255,255,.22)" : css(kind === "div" ? "--card" : "--sunken") }, b);
+      el("text", { x: x + w - cw / 2 - 6, y: y + h / 2 + 4, "font-size": 11, "text-anchor": "middle", "font-weight": 700, fill: dark ? (kind === "root" ? css("--card") : "#fff") : css("--text2") }, b).textContent = cnt;
+      if (nd.new) el("circle", { cx: x + w - cw - 14, cy: y + h / 2, r: 4, fill: css("--s2") }, b);
+      el("title", {}, b).textContent = [...path, label].join(" › ") + ` · 공고 ${cnt}개` + (nd.kind === "project" ? " · 게임·프로젝트" : "") +
+        (!nd.ok ? " · 위아래는 짐작" : "") + (nd.new ? ` · ${md(nd.first)} 처음 보임` : "");
+      const go = () => { svg.querySelectorAll(".ob.sel").forEach(x => x.classList.remove("sel")); b.classList.add("sel"); list(c, nd, path); };
+      b.addEventListener("click", go); b.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+    }
+    function node(nd, x, y, w, kind, path) {
+      const h = HT[kind]; box(x, y, w, h, kind, nd, path);
+      let yy = y + h + 6, last = null; const sp = x + 10, ck = kind === "ent" ? "div" : "team";
+      nd.kids.forEach(k => {
+        const mid = yy + HT[ck] / 2; ln([[sp, mid], [x + IND, mid]], !k.ok || nd.kind === "unk"); last = mid;
+        yy = node(k, x + IND, yy, w - IND, ck, [...path, nameOf(nd)]);
+      });
+      if (last != null) ln([[sp, y + h], [sp, last]]);
+      return yy + (nd.kids.length ? 4 : 0);
+    }
+    const rw = Math.min(300, W), top0 = HT.root;
+    box(bus ? 0 : (W - rw) / 2, 0, rw, HT.root, "root", rootNd, []);  // 가로로 늘어놓을 땐 왼쪽에 둔다
+    let top = top0 + 26;
+    if (bus) {
+      const by = top0 + 14; top = by + 14;
+      ln([[CW / 2, top0], [CW / 2, by]]); ln([[CW / 2, by], [W - CW / 2, by]]);
+      groups.forEach((g, i) => ln([[i * (CW + GAP) + CW / 2, by], [i * (CW + GAP) + CW / 2, top]]));
+    }
+    const colY = Array(K).fill(top);
+    groups.forEach(([nd, kind, path], i) => {
+      const k = bus ? i : colY.indexOf(Math.min(...colY));
+      colY[k] = node(nd, k * (CW + GAP), colY[k], CW, kind, path) + (bus ? 0 : 14);
+    });
+    const H = Math.max(...colY) + 4;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.style.width = W + "px"; svg.style.height = H + "px";
+  }
+
+  function list(c, nd, path) {
+    const box = document.getElementById("org-list");
+    const row = i => { const j = c.jobs[i], p = c._path[i] || [];
+      return `<li><time>${md(j.s)}</time><a href="${esc(j.u)}" target="_blank" rel="noopener">${esc(j.t)}</a>` +
+        `<span class="ost ${j.o ? "o" : "c"}">${j.o ? "열림" : "마감 " + md(j.c)}</span>` + (nd ? "" : `<span class="pth">${esc(p.join(" › "))}</span>`) + "</li>"; };
+    if (!nd) {
+      const fresh = c.jobs.map((j, i) => i).filter(i => c.jobs[i].s > c.start).sort((a, b) => c.jobs[b].s.localeCompare(c.jobs[a].s)).slice(0, 20);
+      box.innerHTML = `<div class="org-head"><h3>최근 새 공고 → 부서</h3><span class="tag">상자를 누르면 그 부서 공고만 보여요</span></div>` +
+        (fresh.length ? `<ul class="org-jobs">${fresh.map(row).join("")}</ul>` : `<p class="note">수집을 시작한 ${md(c.start)} 뒤에 새로 올라온 공고가 아직 없어요.</p>`);
+      return;
+    }
+    const ids = [...all(nd)].sort((a, b) => (c.jobs[b].s || "").localeCompare(c.jobs[a].s || ""));
+    const open = ids.filter(i => c.jobs[i].o).length;
+    const lbl = nd.kind === "unk" ? "상위 조직 미확인" : nd.n;
+    box.innerHTML = `<div class="org-head"><h3>${esc(lbl)} <span class="tag">공고 ${ids.length}개 · 열림 ${open}개${!nd.ok ? " · 위아래는 짐작" : ""}${nd.new ? ` · ${md(nd.first)} 처음 보인 부서` : ""}</span></h3><button type="button" id="org-back">최근 새 공고 보기</button></div>` +
+      (path.length ? `<p class="note">${esc([...path, lbl].join(" › "))}</p>` : "") +
+      (ids.length ? `<ul class="org-jobs">${ids.map(row).join("")}</ul>` : `<p class="note">이 상자에 바로 붙은 공고는 없어요.</p>`);
+    document.getElementById("org-back").onclick = () => { document.querySelectorAll("#org-svg .ob.sel").forEach(x => x.classList.remove("sel")); list(c, null); };
+  }
+})();
 </script>
 </body>
 </html>
