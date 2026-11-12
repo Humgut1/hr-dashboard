@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>채용 공고 골라 보기</title>
+<script>if (/[?&]embed/.test(location.search)) document.documentElement.classList.add("embed");</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* 공개 '골라 보기' 화면. 생김새는 대시보드(../index.html)와 같은 토스 스타일.
+   데이터는 cube.json (묶은 숫자만). 5개 미만 칸은 <5 로 가린다. 설정은 주소(#...)에 들어간다. */
+:root {
+  color-scheme: light;
+  --bg: #f2f4f6; --card: #ffffff; --sunken: #f2f4f6; --text: #191f28; --text2: #4e5968; --muted: #8b95a1;
+  --line: #e5e8eb; --ink: #3182f6; --tint: #e8f3ff; --tint-text: #1b64da;
+  --s1: #3182f6; --s2: #f66d1c; --s3: #10b07f; --s4: #f2a500; --s5: #8b5cf6; --s6: #e8508b; --s7: #14a3b8; --s8: #8b95a1;
+  --good: #03a94d; --bad: #f04452;
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --r: 20px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #101013; --card: #1d1d22; --sunken: #2a2a31; --text: #f2f2f4; --text2: #c3c3c9; --muted: #8d8d96;
+    --line: #2c2c34; --ink: #5a9cff; --tint: #1c2b45; --tint-text: #8ab8ff;
+    --s1: #4b91f7; --s2: #f07a35; --s3: #18a87a; --s4: #d39300; --s5: #9d7af5; --s6: #e0659a; --s7: #22a9bd; --s8: #8d8d96;
+    --good: #2ec46f; --bad: #ff6370;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #101013; --card: #1d1d22; --sunken: #2a2a31; --text: #f2f2f4; --text2: #c3c3c9; --muted: #8d8d96;
+  --line: #2c2c34; --ink: #5a9cff; --tint: #1c2b45; --tint-text: #8ab8ff;
+  --s1: #4b91f7; --s2: #f07a35; --s3: #18a87a; --s4: #d39300; --s5: #9d7af5; --s6: #e0659a; --s7: #22a9bd; --s8: #8d8d96;
+  --good: #2ec46f; --bad: #ff6370;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 var(--sans); letter-spacing: -.01em; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 16px 80px; }
+h1 { font-size: clamp(24px, 3vw, 30px); font-weight: 700; letter-spacing: -.03em; margin: 0; line-height: 1.3; }
+h2 { font-size: 17px; font-weight: 700; margin: 0; letter-spacing: -.02em; }
+a { color: var(--ink); }
+:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; border-radius: 8px; }
+.top { padding: 32px 0 20px; display: grid; gap: 6px; }
+.eyebrow { font-size: 13px; font-weight: 600; color: var(--ink); margin: 0; }
+.sub { color: var(--muted); font-size: 14px; margin: 0; }
+.card { background: var(--card); border-radius: var(--r); padding: 20px; margin-bottom: 14px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: flex-end; }
+.field { display: grid; gap: 6px; min-width: 0; }
+.field > span { font-size: 13px; font-weight: 500; color: var(--muted); }
+select, input[type=search] { font: 600 15px var(--sans); padding: 10px 36px 10px 14px; border-radius: 14px; border: 0; background-color: var(--sunken); color: var(--text); max-width: 100%; }
+select { appearance: none; cursor: pointer; min-width: 120px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 19px) 55%, calc(100% - 14px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
+input[type=search] { padding-right: 14px; width: 100%; font-weight: 500; }
+button { font: 600 14px var(--sans); border: 0; border-radius: 12px; padding: 10px 14px; background: var(--sunken); color: var(--text); cursor: pointer; }
+button:hover { filter: brightness(.97); }
+button.primary { background: var(--ink); color: #fff; }
+.seg { display: inline-flex; background: var(--sunken); border-radius: 14px; padding: 4px; gap: 2px; }
+.seg button { background: transparent; padding: 7px 12px; border-radius: 10px; color: var(--text2); }
+.seg button[aria-pressed=true] { background: var(--card); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+/* 필터 */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+details.flt { position: relative; }
+details.flt > summary { list-style: none; cursor: pointer; font-size: 14px; font-weight: 600; padding: 8px 12px; border-radius: 999px; background: var(--sunken); color: var(--text2); white-space: nowrap; }
+details.flt > summary::-webkit-details-marker { display: none; }
+details.flt.on > summary { background: var(--tint); color: var(--tint-text); }
+details.flt .pop { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; width: min(320px, calc(100vw - 32px)); background: var(--card); border-radius: 16px; padding: 12px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.14); display: grid; gap: 8px; }
+.pop .list { max-height: 280px; overflow: auto; display: grid; gap: 2px; }
+.pop label { display: flex; gap: 8px; align-items: center; font-size: 14px; padding: 5px 6px; border-radius: 8px; cursor: pointer; }
+.pop label:hover { background: var(--sunken); }
+.pop label small { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pop .acts { display: flex; gap: 6px; justify-content: space-between; }
+.pop .acts button { padding: 6px 10px; font-size: 13px; }
+/* 결과 */
+.head { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.kpis { display: flex; flex-wrap: wrap; gap: 24px; margin-bottom: 16px; }
+.kpi span { display: block; font-size: 13px; color: var(--muted); }
+.kpi b { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.chart { position: relative; height: 340px; margin-bottom: 8px; }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+th, td { padding: 9px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; position: sticky; left: 0; background: var(--card); max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+thead th { color: var(--muted); font-weight: 600; font-size: 13px; }
+tfoot td { font-weight: 700; border-bottom: 0; }
+td.mask { color: var(--muted); }
+td .bar { display: inline-block; height: 6px; border-radius: 3px; background: var(--ink); opacity: .35; margin-right: 8px; vertical-align: middle; }
+.more { margin-top: 10px; }
+.note { font-size: 13px; color: var(--muted); margin: 10px 0 0; line-height: 1.7; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-size: 14px; }
+@media (max-width: 640px) { .card { padding: 16px; } .chart { height: 280px; } select { min-width: 0; }
+  details.flt .pop { position: fixed; top: auto; left: 16px !important; right: 16px; bottom: 16px; width: auto; } }
+html.embed .top { display: none; }
+html.embed .wrap { padding-top: 0; padding-bottom: 24px; }
+html.embed body { background: transparent; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow"><a href="../" style="text-decoration:none">← 대시보드</a></p>
+    <h1>채용 공고 골라 보기</h1>
+    <p class="sub" id="updated">불러오는 중…</p>
+  </header>
+
+  <section class="card" aria-label="설정">
+    <div class="row" style="margin-bottom:16px">
+      <label class="field"><span>볼 숫자</span>
+        <select id="m">
+          <option value="open">열린 공고 수</option>
+          <option value="delta">열린 공고 증감 (지난주 대비)</option>
+          <option value="new">새 공고</option>
+          <option value="closed">마감된 공고</option>
+          <option value="pay">연봉 중간값 (미국, 지금 열린 공고)</option>
+        </select></label>
+      <label class="field"><span>행 (나눠 볼 기준)</span><select id="r"></select></label>
+      <label class="field"><span>열</span><select id="c"></select></label>
+      <label class="field"><span>기간 시작 주</span><select id="w0"></select></label>
+      <label class="field"><span>기간 끝 주</span><select id="w1"></select></label>
+    </div>
+    <div class="field"><span>거르기</span><div class="filters" id="filters"></div></div>
+  </section>
+
+  <section class="card" aria-live="polite">
+    <div class="head">
+      <h2 id="title">결과</h2>
+      <div class="row">
+        <div class="seg" role="group" aria-label="보기">
+          <button data-v="table" aria-pressed="true">표</button>
+          <button data-v="chart" aria-pressed="false">차트</button>
+        </div>
+        <div class="seg" role="group" aria-label="숫자 방식">
+          <button data-p="0" aria-pressed="true">건수</button>
+          <button data-p="1" aria-pressed="false">비율 %</button>
+        </div>
+        <button id="csv">CSV 받기</button>
+        <button id="link" class="primary">이 화면 링크 복사</button>
+      </div>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="chart" id="chartbox" hidden><canvas id="cv" aria-label="결과 차트" role="img"></canvas></div>
+    <div class="tbl" id="tbl"></div>
+    <p class="note" id="note"></p>
+  </section>
+
+  <p class="note">
+    공개 채용 공고를 회사·직군·주 단위로 묶은 숫자예요. 공고 하나하나(공고명·링크·본문)는 들어 있지 않아요.
+    한 칸이 5건 미만이면 <b>&lt;5</b>로 가려요. 연봉 중간값은 5건 이상인 칸만 보여 줘요.<br>
+    열린 공고 = 그 주 마지막 날 열려 있던 공고. 새 공고에서 회사를 처음 넣은 날 이미 열려 있던 공고는 빼요.
+    직군·직무 이름은 통합 직군표 이름 그대로예요. 현장직은 직군 칸에 현장 종류가 들어가요.
+  </p>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const LABEL = { region: "나라", industry: "업종", company: "회사", scope: "구분", fam: "직군", sub: "직무",
+  employment: "고용형태", exp: "경력", workplace: "근무 형태" };
+const SHOW = { region: { KR: "국내", US: "미국" } };
+const MLABEL = { open: "열린 공고 수", delta: "열린 공고 증감", new: "새 공고", closed: "마감된 공고", pay: "연봉 중간값" };
+const MIN = 5;
+const COLORS = ["--s1", "--s2", "--s3", "--s4", "--s5", "--s6", "--s7", "--s8"];
+let D, NDIM, chart;
+const S = { m: "open", r: "fam", c: "none", w0: 0, w1: 0, v: "table", p: 0, f: {}, all: false };
+const $ = id => document.getElementById(id);
+const nf = n => Math.round(n).toLocaleString("ko-KR");
+const name = (d, i) => { const v = D.values[d][i]; return (SHOW[d] && SHOW[d][v]) || (v === "" ? "(현장직)" : v); };
+
+fetch("cube.json").then(r => r.json()).then(d => { D = d; NDIM = d.dims.length; init(); });
+
+function init() {
+  $("updated").textContent = `${D.updated} 기준 · 주 ${D.weeks.length}개 · 국내·미국 공고를 묶은 숫자`;
+  const tot = {};  // 값별 공고 수 (마지막 주 열린 공고) → 필터 목록 순서
+  D.dims.forEach((d, k) => tot[d] = new Array(D.values[d].length).fill(0));
+  const last = D.weeks.length - 1;
+  for (const r of D.rows) if (r[NDIM] === last) D.dims.forEach((d, k) => tot[d][r[k]] += r[NDIM + 1]);
+  D.tot = tot;
+  const opt = (v, t) => `<option value="${v}">${t}</option>`;
+  $("r").innerHTML = D.dims.map(d => opt(d, LABEL[d])).join("");
+  $("c").innerHTML = opt("none", "없음") + opt("week", "주 (흐름)") + D.dims.map(d => opt(d, LABEL[d])).join("");
+  const wk = D.weeks.map((w, i) => opt(i, `${w.slice(5)} 주`)).join("");
+  $("w0").innerHTML = wk; $("w1").innerHTML = wk;
+  S.w0 = Math.max(0, last - 3); S.w1 = last;
+  readHash();
+  buildFilters();
+  ["m", "r", "c", "w0", "w1"].forEach(id => $(id).addEventListener("change", e => { S[id] = /^w/.test(id) ? +e.target.value : e.target.value; draw(); }));
+  document.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { S.v = b.dataset.v; draw(); });
+  document.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { S.p = +b.dataset.p; draw(); });
+  $("csv").onclick = csv;
+  $("link").onclick = () => { navigator.clipboard.writeText(location.href).then(() => toast("링크를 복사했어요. 이 링크를 열면 같은 화면이 나와요."), () => toast("주소창의 링크를 복사해 주세요.")); };
+  document.addEventListener("click", e => document.querySelectorAll("details.flt[open]").forEach(x => { if (!x.contains(e.target)) x.open = false; }));
+  draw();
+}
+
+function readHash() {
+  const q = new URLSearchParams(location.hash.slice(1));
+  for (const k of ["m", "r", "c", "v"]) if (q.get(k)) S[k] = q.get(k);
+  if (q.has("p")) S.p = +q.get("p");
+  const wi = w => { const i = D.weeks.indexOf(w); return i < 0 ? null : i; };
+  if (q.get("w0") && wi(q.get("w0")) != null) S.w0 = wi(q.get("w0"));
+  if (q.get("w1") && wi(q.get("w1")) != null) S.w1 = wi(q.get("w1"));
+  for (const d of D.dims) {
+    const v = q.get("f." + d);
+    if (v) { const set = new Set(v.split("|").map(x => D.values[d].indexOf(x)).filter(i => i >= 0)); if (set.size) S.f[d] = set; }
+  }
+}
+function writeHash() {
+  const q = new URLSearchParams({ m: S.m, r: S.r, c: S.c, w0: D.weeks[S.w0], w1: D.weeks[S.w1], v: S.v, p: S.p });
+  for (const d in S.f) q.set("f." + d, [...S.f[d]].map(i => D.values[d][i]).join("|"));
+  history.replaceState(null, "", "#" + q.toString());
+}
+
+function buildFilters() {
+  $("filters").innerHTML = D.dims.map(d => `<details class="flt" data-d="${d}"><summary></summary><div class="pop">
+    <input type="search" placeholder="${LABEL[d]} 찾기" aria-label="${LABEL[d]} 찾기">
+    <div class="list"></div>
+    <div class="acts"><button data-a="none">모두 풀기</button><button data-a="close" class="primary">닫기</button></div></div></details>`).join("");
+  document.querySelectorAll("details.flt").forEach(el => {
+    const d = el.dataset.d, list = el.querySelector(".list");
+    const order = D.order[d] ? D.values[d].map((v, i) => i).sort((a, b) => D.order[d].indexOf(D.values[d][a]) - D.order[d].indexOf(D.values[d][b]))
+                             : D.values[d].map((v, i) => i).sort((a, b) => D.tot[d][b] - D.tot[d][a]);
+    list.innerHTML = order.map(i => `<label data-n="${name(d, i).toLowerCase()}"><input type="checkbox" value="${i}">${esc(name(d, i))}<small>${nf(D.tot[d][i])}</small></label>`).join("");
+    list.addEventListener("change", e => {
+      const s = S.f[d] || new Set(); const i = +e.target.value;
+      e.target.checked ? s.add(i) : s.delete(i);
+      if (s.size) S.f[d] = s; else delete S.f[d];
+      draw();
+    });
+    el.querySelector("input[type=search]").addEventListener("input", e => {
+      const t = e.target.value.trim().toLowerCase();
+      list.querySelectorAll("label").forEach(l => l.hidden = t && !l.dataset.n.includes(t));
+    });
+    el.querySelector("[data-a=none]").onclick = () => { delete S.f[d]; draw(); };
+    el.querySelector("[data-a=close]").onclick = () => { el.open = false; };
+    el.addEventListener("toggle", () => {  // 오른쪽 끝 필터는 창을 왼쪽으로 붙여서 화면 밖으로 안 나가게
+      const pop = el.querySelector(".pop"); pop.style.left = "0px";
+      if (el.open) { const r = pop.getBoundingClientRect(); if (r.right > innerWidth - 16) pop.style.left = (innerWidth - 16 - r.right) + "px"; }
+    });
+  });
+}
+function syncFilters() {
+  document.querySelectorAll("details.flt").forEach(el => {
+    const d = el.dataset.d, s = S.f[d];
+    el.classList.toggle("on", !!s);
+    el.querySelector("summary").textContent = !s ? `${LABEL[d]} 전체` : s.size === 1 ? `${LABEL[d]}: ${name(d, [...s][0])}` : `${LABEL[d]} ${s.size}개`;
+    el.querySelectorAll(".list input").forEach(i => i.checked = !!(s && s.has(+i.value)));
+  });
+}
+
+const keep = r => { for (let k = 0; k < NDIM; k++) { const s = S.f[D.dims[k]]; if (s && !s.has(r[k])) return false; } return true; };
+
+// 결과 계산: {rows: [{key, label, cells: Map(colKey → value), total}], cols: [{key, label}], grand}
+function compute() {
+  const ri = D.dims.indexOf(S.r), byWeek = S.c === "week", ci = byWeek || S.c === "none" ? -1 : D.dims.indexOf(S.c);
+  let w0 = Math.min(S.w0, S.w1), w1 = Math.max(S.w0, S.w1);
+  const colOf = r => byWeek ? r[NDIM] : ci < 0 ? 0 : r[ci];
+  const out = new Map(), colTot = new Map();
+  const add = (rk, ck, v) => {
+    if (!out.has(rk)) out.set(rk, new Map());
+    const m = out.get(rk); m.set(ck, (m.get(ck) || 0) + v);
+  };
+  if (S.m === "pay") {
+    const bins = new Map();  // rk → ck → {bin: n}
+    for (const r of D.pay) {
+      if (!keep(r)) continue;
+      const rk = r[ri], ck = ci < 0 ? 0 : r[ci], b = r[NDIM];
+      for (const k of [[rk, ck], [rk, "T"], ["T", ck], ["T", "T"]]) {
+        const id = k.join("~"); if (!bins.has(id)) bins.set(id, {});
+        const o = bins.get(id); for (const x in b) o[x] = (o[x] || 0) + b[x];
+      }
+    }
+    const med = id => { const o = bins.get(id); if (!o) return null; const n = Object.values(o).reduce((a, b) => a + b, 0);
+      if (n < MIN) return { n, v: null }; let acc = 0; for (const x of Object.keys(o).map(Number).sort((a, b) => a - b)) { acc += o[x]; if (acc >= n / 2) return { n, v: (x + .5) * D.pay_bin }; } };
+    const rows = [], cols = new Set();
+    for (const id of bins.keys()) { const [a, b] = id.split("~"); if (a !== "T" && b !== "T") cols.add(+b); }
+    for (const id of bins.keys()) {
+      const [a, b] = id.split("~"); if (a === "T" || b !== "T") continue;
+      const cells = new Map(); for (const c of cols) { const x = med(a + "~" + c); if (x) cells.set(c, x); }
+      rows.push({ key: +a, label: name(S.r, +a), cells, total: med(a + "~T") });
+    }
+    rows.sort((x, y) => y.total.n - x.total.n);
+    const colList = [...cols].sort((a, b) => (med("T~" + b)?.n || 0) - (med("T~" + a)?.n || 0)).map(c => ({ key: c, label: ci < 0 ? "연봉 중간값" : name(S.c, c), tot: med("T~" + c) }));
+    return { rows, cols: colList, grand: med("T~T"), pay: true };
+  }
+  for (const r of D.rows) {
+    const w = r[NDIM];
+    if (w < (S.m === "delta" ? w1 - 1 : w0) || w > w1 || !keep(r)) continue;
+    let v;
+    if (S.m === "open") { if (!byWeek && w !== w1) continue; v = r[NDIM + 1]; }
+    else if (S.m === "delta") { if (byWeek) { v = r[NDIM + 1]; } else v = w === w1 ? r[NDIM + 1] : -r[NDIM + 1]; if (byWeek && w < w0) continue; }
+    else v = r[S.m === "new" ? NDIM + 2 : NDIM + 3];
+    add(r[ri], colOf(r), v);
+  }
+  let cols = new Map();
+  const rows = [...out].map(([rk, m]) => {
+    let total = 0;
+    for (const [ck, v] of m) { colTot.set(ck, (colTot.get(ck) || 0) + v); }
+    total = byWeek && (S.m === "open" || S.m === "delta") ? (m.get(w1) || 0) : [...m.values()].reduce((a, b) => a + b, 0);
+    return { key: rk, label: name(S.r, rk), cells: m, total };
+  });
+  rows.sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
+  let colList;
+  if (byWeek) colList = D.weeks.map((w, i) => ({ key: i, label: w.slice(5) + " 주" })).filter(c => c.key >= w0 && c.key <= w1);
+  else if (ci < 0) colList = [{ key: 0, label: MLABEL[S.m] }];
+  else colList = [...colTot].sort((a, b) => b[1] - a[1]).map(([k]) => ({ key: k, label: name(S.c, k) }));
+  colList.forEach(c => c.tot = colTot.get(c.key) || 0);
+  const grand = byWeek && (S.m === "open" || S.m === "delta") ? (colTot.get(w1) || 0) : [...colTot.values()].reduce((a, b) => a + b, 0);
+  return { rows, cols: colList, grand, byWeek };
+}
+
+// 칸 하나를 글자로: 5건 미만 가리기, 비율 모드
+function cell(v, colTotal, pay) {
+  if (pay) return !v ? ["", ""] : v.v == null ? ["<5", "mask"] : ["$" + Math.round(v.v / 1000) + "k", ""];
+  if (v == null || v === 0) return ["", ""];
+  if (S.m !== "delta" && Math.abs(v) < MIN) return ["<5", "mask"];
+  if (S.p && S.m !== "delta") return [(colTotal ? v / colTotal * 100 : 0).toFixed(1) + "%", ""];
+  return [(S.m === "delta" && v > 0 ? "+" : "") + nf(v), ""];
+}
+
+let LIMIT = 30, LAST;
+function draw() {
+  syncFilters(); writeHash();
+  $("m").value = S.m; $("r").value = S.r; $("c").value = S.c; $("w0").value = S.w0; $("w1").value = S.w1;
+  document.querySelectorAll("[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === S.v));
+  document.querySelectorAll("[data-p]").forEach(b => b.setAttribute("aria-pressed", +b.dataset.p === S.p));
+  const R = LAST = compute();
+  const w0 = Math.min(S.w0, S.w1), w1 = Math.max(S.w0, S.w1);
+  const span = S.m === "open" || S.m === "pay" ? (S.m === "pay" ? D.updated + " 기준" : D.week_ends[w1] + " 기준")
+             : S.m === "delta" ? `${D.week_ends[Math.max(0, w1 - 1)]} → ${D.week_ends[w1]}` : `${D.weeks[w0]} ~ ${D.week_ends[w1]}`;
+  $("title").textContent = `${MLABEL[S.m]} · ${LABEL[S.r]}별${S.c === "none" ? "" : S.c === "week" ? " · 주별" : " × " + LABEL[S.c]}`;
+  const g = R.pay ? (R.grand && R.grand.v ? "$" + Math.round(R.grand.v / 1000) + "k" : "–") : (S.m === "delta" && R.grand > 0 ? "+" : "") + nf(R.grand);
+  $("kpis").innerHTML = `<div class="kpi"><span>${R.pay ? "전체 중간값" : "합계"} · ${span}</span><b>${g}</b></div>` +
+    (R.pay ? `<div class="kpi"><span>연봉이 적힌 공고</span><b>${nf(R.grand ? R.grand.n : 0)}</b></div>` : "") +
+    `<div class="kpi"><span>${LABEL[S.r]} 수</span><b>${nf(R.rows.length)}</b></div>`;
+  const notes = [];
+  if (R.pay && S.c === "week") notes.push("연봉은 지금 열린 공고만 있어서 주별로 나누지 않아요.");
+  if (R.pay) notes.push("연봉 = 공고에 적힌 연봉 범위의 가운데 값, $10k 구간으로 계산. 국내 공고는 연봉이 거의 안 적혀 있어요.");
+  if (S.m === "delta") notes.push("증감은 회사를 새로 넣은 주에 크게 늘어 보일 수 있어요.");
+  if (D.weeks.length < 4) notes.push(`아직 ${D.weeks.length}주치만 쌓였어요. 흐름은 몇 주 더 쌓이면 또렷해져요.`);
+  $("note").textContent = notes.join(" ");
+  $("chartbox").hidden = S.v !== "chart";
+  if (S.v === "chart") drawChart(R);
+  table(R);
+}
+
+function table(R) {
+  const cols = R.cols.slice(0, R.byWeek ? 60 : 12);
+  const many = R.cols.length > cols.length;
+  const showTotal = cols.length > 1 || many;
+  const max = Math.max(1, ...R.rows.map(r => Math.abs(R.pay ? (r.total?.v || 0) : r.total)));
+  let h = `<table><thead><tr><th>${LABEL[S.r]}</th>${cols.map(c => `<th>${esc(c.label)}</th>`).join("")}${showTotal ? `<th>${R.pay ? "전체" : R.byWeek && (S.m === "open" || S.m === "delta") ? "마지막 주" : "합계"}</th>` : ""}</tr></thead><tbody>`;
+  for (const r of R.rows.slice(0, LIMIT)) {
+    h += `<tr><td title="${esc(r.label)}">${esc(r.label)}</td>`;
+    cols.forEach((c, j) => {
+      const [t, cls] = cell(r.cells.get(c.key), c.tot, R.pay);
+      const bar = !showTotal && !S.p && cls !== "mask" && t ? `<span class="bar" style="width:${Math.round(Math.abs(R.pay ? r.total.v : r.total) / max * 80)}px"></span>` : "";
+      h += `<td class="${cls}">${bar}${t}</td>`;
+    });
+    if (showTotal) { const [t, cls] = cell(r.total, R.pay ? null : (R.byWeek && S.m === "open" ? (R.cols.find(c => c.key === Math.max(S.w0, S.w1))?.tot) : R.grand), R.pay); h += `<td class="${cls}">${t}</td>`; }
+    h += "</tr>";
+  }
+  h += `</tbody><tfoot><tr><td>전체</td>${cols.map(c => `<td>${cell(R.pay ? c.tot : c.tot, c.tot, R.pay)[0] && (S.p && !R.pay && S.m !== "delta" ? "100%" : cell(R.pay ? c.tot : c.tot, 0, R.pay)[0])}</td>`).join("")}${showTotal ? `<td>${S.p && !R.pay && S.m !== "delta" ? "100%" : cell(R.grand, 0, R.pay)[0]}</td>` : ""}</tr></tfoot></table>`;
+  if (R.rows.length > LIMIT) h += `<button class="more" id="more">${nf(R.rows.length - LIMIT)}개 더 보기</button>`;
+  if (many) h += `<p class="note">열이 많아서 큰 순서로 ${cols.length}개만 보여 줘요. 열을 거르기로 줄이면 다 보여요.</p>`;
+  $("tbl").innerHTML = h;
+  if ($("more")) $("more").onclick = () => { LIMIT += 50; table(LAST); };
+}
+
+function drawChart(R) {
+  const css = getComputedStyle(document.documentElement), col = i => css.getPropertyValue(COLORS[i % COLORS.length]).trim();
+  const text2 = css.getPropertyValue("--text2").trim(), line = css.getPropertyValue("--line").trim();
+  const val = (r, c) => { const v = r.cells.get(c.key); if (R.pay) return v && v.v ? Math.round(v.v / 1000) : null;
+    if (v == null) return 0; return S.p && S.m !== "delta" ? +(c.tot ? v / c.tot * 100 : 0).toFixed(1) : v; };
+  let cfg;
+  if (R.byWeek) {
+    const rows = R.rows.slice(0, 8);
+    cfg = { type: "line", data: { labels: R.cols.map(c => c.label), datasets: rows.map((r, i) => ({ label: r.label, data: R.cols.map(c => val(r, c)), borderColor: col(i), backgroundColor: col(i), borderWidth: 2, pointRadius: 4, tension: .2 })) } };
+  } else if (R.cols.length === 1) {
+    const rows = R.rows.slice(0, 15);
+    cfg = { type: "bar", data: { labels: rows.map(r => r.label), datasets: [{ label: MLABEL[S.m], data: rows.map(r => val(r, R.cols[0])), backgroundColor: col(0), borderRadius: 4, maxBarThickness: 22 }] },
+      options: { indexAxis: "y" } };
+  } else {
+    const rows = R.rows.slice(0, 12), cols = R.cols.slice(0, 7);
+    cfg = { type: "bar", data: { labels: rows.map(r => r.label), datasets: cols.map((c, i) => ({ label: c.label, data: rows.map(r => val(r, c)), backgroundColor: col(i), borderRadius: 2, maxBarThickness: 22, borderColor: css.getPropertyValue("--card").trim(), borderWidth: 1 })) },
+      options: { indexAxis: "y", scales: { x: { stacked: !R.pay }, y: { stacked: !R.pay } } } };
+  }
+  const unit = R.pay ? "$k" : S.p && S.m !== "delta" ? "%" : "건";
+  cfg.options = Object.assign({ responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: "nearest", intersect: false },
+    plugins: { legend: { display: cfg.data.datasets.length > 1, position: "bottom", labels: { color: text2, boxWidth: 10, usePointStyle: true } },
+      tooltip: { callbacks: { label: c => { const v = c.raw; if (v == null) return `${c.dataset.label}: 5건 미만`; if (!R.pay && S.m !== "delta" && !S.p && Math.abs(v) < MIN && v !== 0) return `${c.dataset.label}: <5`; return `${c.dataset.label}: ${v.toLocaleString("ko-KR")}${unit}`; } } } },
+    scales: {} }, cfg.options || {});
+  for (const ax of ["x", "y"]) cfg.options.scales[ax] = Object.assign({ ticks: { color: text2, autoSkip: true, callback: function (v) { const l = this.getLabelForValue(v); return typeof l === "string" && l.length > 22 ? l.slice(0, 21) + "…" : l; } }, grid: { color: line } }, cfg.options.scales[ax] || {});
+  // 차트에서도 5건 미만은 0으로 그리지 않고 비워 둠
+  if (!R.pay && S.m !== "delta" && !S.p) cfg.data.datasets.forEach(ds => ds.data = ds.data.map(v => v && Math.abs(v) < MIN ? null : v));
+  if (chart) chart.destroy();
+  chart = new Chart($("cv"), cfg);
+}
+
+function csv() {
+  const R = LAST, cols = R.cols;
+  const q = s => `"${String(s).replace(/"/g, '""')}"`;
+  const lines = [[LABEL[S.r], ...cols.map(c => c.label), "합계"].map(q).join(",")];
+  for (const r of R.rows) lines.push([r.label, ...cols.map(c => cell(r.cells.get(c.key), c.tot, R.pay)[0]), cell(r.total, R.grand, R.pay)[0]].map(q).join(","));
+  lines.push(q(`# ${MLABEL[S.m]}, ${D.updated} 기준. 5건 미만은 <5. 출처: 공개 채용 공고 집계`));
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + lines.join("\n")], { type: "text/csv" }));
+  a.download = `채용공고_${MLABEL[S.m]}_${LABEL[S.r]}_${D.updated}.csv`; a.click();
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]); }
+function toast(t) { const el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 2600); }
+</script>
+</body>
+</html>

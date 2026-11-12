@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>채용 시장 아카이브</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* 공개 '채용 시장 아카이브'. 왼쪽 탭: 나라(미국 · 한국) → 주제(Recruiting · Talent · Compensation · ER · 직접 골라 보기).
+   데이터는 insights/<주>.json (묶은 숫자만, 5개 미만은 <5). 주마다 파일이 남아서 지난 주 분석도 볼 수 있다.
+   주소(#r=US&t=talent&w=2026-W46)에 지금 보는 곳이 들어간다. */
+:root {
+  color-scheme: light;
+  --bg: #f2f4f6; --card: #ffffff; --sunken: #f2f4f6; --text: #191f28; --text2: #4e5968; --muted: #8b95a1;
+  --line: #e5e8eb; --ink: #3182f6; --tint: #e8f3ff; --tint-text: #1b64da;
+  --s1: #3182f6; --s2: #f66d1c; --s3: #10b07f; --s4: #f2a500; --s5: #8b5cf6; --s6: #e8508b; --s7: #14a3b8; --s8: #8b95a1;
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --r: 20px; --rail: 248px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #101013; --card: #1d1d22; --sunken: #2a2a31; --text: #f2f2f4; --text2: #c3c3c9; --muted: #8d8d96;
+    --line: #2c2c34; --ink: #5a9cff; --tint: #1c2b45; --tint-text: #8ab8ff;
+    --s1: #4b91f7; --s2: #f07a35; --s3: #18a87a; --s4: #d39300; --s5: #9d7af5; --s6: #e0659a; --s7: #22a9bd; --s8: #8d8d96;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #101013; --card: #1d1d22; --sunken: #2a2a31; --text: #f2f2f4; --text2: #c3c3c9; --muted: #8d8d96;
+  --line: #2c2c34; --ink: #5a9cff; --tint: #1c2b45; --tint-text: #8ab8ff;
+  --s1: #4b91f7; --s2: #f07a35; --s3: #18a87a; --s4: #d39300; --s5: #9d7af5; --s6: #e0659a; --s7: #22a9bd; --s8: #8d8d96;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 var(--sans); letter-spacing: -.01em; -webkit-font-smoothing: antialiased; }
+a { color: var(--ink); }
+:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; border-radius: 8px; }
+button { font: 600 14px var(--sans); border: 0; border-radius: 12px; padding: 9px 14px; background: var(--sunken); color: var(--text); cursor: pointer; }
+button:hover { filter: brightness(.97); }
+select { font: 600 14px var(--sans); padding: 9px 32px 9px 12px; border-radius: 12px; border: 0; background-color: var(--sunken); color: var(--text); width: 100%;
+  appearance: none; cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 17px) 55%, calc(100% - 12px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
+
+/* 틀: 왼쪽 탭 + 본문 */
+.app { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); min-height: 100vh; }
+.rail { position: sticky; top: 0; height: 100vh; overflow: auto; padding: 24px 16px; display: flex; flex-direction: column; gap: 18px;
+  background: var(--card); border-right: 1px solid var(--line); }
+.brand { display: grid; gap: 2px; }
+.brand a { font-size: 13px; text-decoration: none; font-weight: 600; }
+.brand b { font-size: 18px; letter-spacing: -.03em; }
+.country { display: grid; grid-template-columns: 1fr 1fr; background: var(--sunken); border-radius: 14px; padding: 4px; gap: 2px; }
+.country button { background: transparent; padding: 8px 6px; border-radius: 10px; color: var(--text2); font-size: 15px; }
+.country button[aria-pressed=true] { background: var(--card); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.label { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px 4px; }
+.topics { display: grid; gap: 2px; }
+.topics button { display: grid; gap: 1px; text-align: left; background: transparent; padding: 10px 12px; border-radius: 12px; }
+.topics button b { font-size: 15px; }
+.topics button small { font-size: 12px; font-weight: 500; color: var(--muted); line-height: 1.4; }
+.topics button[aria-current=page] { background: var(--tint); }
+.topics button[aria-current=page] b { color: var(--tint-text); }
+.topics button:disabled { cursor: default; opacity: .45; filter: none; }
+.topics hr { border: 0; border-top: 1px solid var(--line); margin: 6px 4px; }
+.railfoot { margin-top: auto; display: grid; gap: 10px; font-size: 12px; color: var(--muted); }
+.railfoot button { width: 100%; }
+
+main { padding: 32px 32px 80px; max-width: 1080px; width: 100%; }
+.eyebrow { font-size: 13px; font-weight: 600; color: var(--ink); margin: 0 0 4px; }
+h1 { font-size: clamp(24px, 3vw, 30px); font-weight: 700; letter-spacing: -.03em; margin: 0; line-height: 1.3; }
+h2 { font-size: 18px; font-weight: 700; margin: 0; letter-spacing: -.02em; }
+.lead { color: var(--text2); margin: 6px 0 0; }
+.meta { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 20px 0 14px; }
+.kpi { background: var(--card); border-radius: 16px; padding: 14px 16px; }
+.kpi small { display: block; color: var(--muted); font-size: 13px; }
+.kpi b { font-size: 22px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.card { background: var(--card); border-radius: var(--r); padding: 22px; margin-bottom: 14px; scroll-margin-top: 16px; }
+.summary h2 { font-size: 16px; margin-bottom: 10px; }
+.summary ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; counter-reset: s; }
+.summary li a { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 4px; padding: 7px 8px; border-radius: 10px; color: var(--text); text-decoration: none; }
+.summary li a:hover { background: var(--sunken); }
+.summary li a::before { counter-increment: s; content: counter(s); color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.summary li span { font-size: 14px; line-height: 1.5; }
+.summary li span b { font-weight: 700; }
+.summary li span em { font-style: normal; color: var(--text2); }
+.toolbar { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin: 18px 0 10px; flex-wrap: wrap; }
+.toolbar p { margin: 0; color: var(--muted); font-size: 13px; }
+
+.chead { display: flex; gap: 10px; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+.chead .num { color: var(--ink); font-weight: 700; margin-right: 6px; }
+.dl { display: flex; gap: 6px; flex-shrink: 0; }
+.dl button { padding: 6px 10px; font-size: 13px; }
+.chart { position: relative; width: 100%; }
+.insight { margin: 16px 0 0; font-size: 16px; font-weight: 600; line-height: 1.65; letter-spacing: -.015em; }
+.explain { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.explain div { background: var(--sunken); border-radius: 14px; padding: 12px 14px; font-size: 14px; color: var(--text2); line-height: 1.6; }
+.explain b { display: block; color: var(--text); font-size: 13px; margin-bottom: 2px; }
+.note { margin: 10px 0 0; color: var(--muted); font-size: 13px; }
+.tablebox { margin-top: 14px; overflow: auto; max-height: 420px; border-radius: 12px; border: 1px solid var(--line); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+th { position: sticky; top: 0; background: var(--card); color: var(--muted); font-weight: 600; z-index: 1; }
+td.n, th.n { text-align: right; }
+.frame { width: 100%; border: 0; min-height: 900px; display: block; }
+.empty { color: var(--muted); padding: 40px 0; text-align: center; }
+
+@media (max-width: 860px) {
+  .app { grid-template-columns: 1fr; }
+  .rail { position: sticky; top: 0; z-index: 30; height: auto; padding: 10px 16px; gap: 8px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .brand, .label, .railfoot, .topics hr, .topics button small { display: none; }
+  .country { max-width: 240px; }
+  .topics { display: flex; overflow-x: auto; gap: 4px; scrollbar-width: none; }
+  .topics button { white-space: nowrap; padding: 7px 12px; flex-shrink: 0; }
+  main { padding: 20px 16px 60px; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .explain { grid-template-columns: 1fr; }
+  .card { padding: 16px; }
+  .chead { flex-direction: column; }
+  .mobilefoot { display: grid !important; gap: 8px; margin-top: 24px; }
+}
+.mobilefoot { display: none; }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail" aria-label="탭">
+    <div class="brand">
+      <a href="../">← 대시보드</a>
+      <b>채용 시장 아카이브</b>
+    </div>
+    <div class="country" role="group" aria-label="나라">
+      <button data-r="US" aria-pressed="true">🇺🇸 미국</button>
+      <button data-r="KR" aria-pressed="false">🇰🇷 한국</button>
+    </div>
+    <div>
+      <p class="label">주제</p>
+      <div class="topics" id="topics"></div>
+    </div>
+    <div class="railfoot">
+      <label><p class="label" style="margin-left:0">기준 주 (지난 주 분석도 그대로 남아요)</p>
+        <select id="week" aria-label="기준 주"></select></label>
+      <button id="xlsxAll">이 주제 전체 엑셀 받기</button>
+      <span>공개 채용 공고를 묶은 숫자예요. 공고 하나하나는 들어 있지 않고, 5개 미만인 칸은 &lt;5 로 가렸어요.</span>
+    </div>
+  </nav>
+
+  <main id="main">
+    <p class="eyebrow" id="eyebrow"></p>
+    <h1 id="title">불러오는 중…</h1>
+    <p class="lead" id="lead"></p>
+    <p class="meta" id="meta"></p>
+    <div id="body"></div>
+    <div class="mobilefoot">
+      <label><p class="label" style="margin-left:0">기준 주</p><select id="week2" aria-label="기준 주"></select></label>
+      <a href="../">← 대시보드</a>
+    </div>
+  </main>
+</div>
+
+<script>
+const TOPICS = [
+  { id: "recruiting", name: "Recruiting", desc: "공고 수 추이 · 리드타임 · 어디서 많이 뽑나",
+    lead: "누가, 어떤 직군을, 얼마나 빨리 뽑고 있는지 봐요." },
+  { id: "talent", name: "Talent", desc: "필요 역량 · 우대 역량 · 경력 · 학력",
+    lead: "공고 본문에서 회사들이 어떤 역량과 경력을 찾는지 봐요." },
+  { id: "compensation", name: "Compensation", desc: "직군별 · 회사별 페이밴드 (미국만)", us: true,
+    lead: "공고에 적힌 연봉 범위로 직군 · 회사 · 레벨 · 지역별 페이밴드를 봐요." },
+  { id: "er", name: "ER", desc: "고용 형태 · 근무 형태 · 근무 조건",
+    lead: "정규직 · 계약직 · 인턴, 출근 · 원격, 비자 · 교대 같은 노무 관련 조건을 봐요." },
+  { id: "pivot", name: "직접 골라 보기", desc: "원하는 칸으로 거르고 묶기",
+    lead: "업종 · 회사 · 직군 · 고용 형태 등을 골라서 공고 수와 연봉을 직접 묶어 봐요." },
+];
+const RNAME = { US: "미국", KR: "한국" };
+const S = { r: "US", t: "recruiting", w: "" };
+let IDX = [], D = null, charts = [];
+const $ = s => document.querySelector(s);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmt = (v, u) => v == null ? "–" : u === "%" ? `${(+v).toLocaleString("ko-KR", { maximumFractionDigits: 1 })}%`
+  : u === "$k" ? `$${(+v).toLocaleString("en-US", { maximumFractionDigits: 1 })}k` : u === "$" ? `$${(+v).toFixed(2)}`
+  : `${(+v).toLocaleString("ko-KR")}${u || ""}`;
+
+function readHash() {
+  const q = new URLSearchParams(location.hash.slice(1));
+  if (RNAME[q.get("r")]) S.r = q.get("r");
+  if (TOPICS.some(t => t.id === q.get("t"))) S.t = q.get("t");
+  if (q.get("w")) S.w = q.get("w");
+  if (S.r === "KR" && S.t === "compensation") S.t = "recruiting";
+}
+function writeHash(card) {
+  const q = new URLSearchParams({ r: S.r, t: S.t });
+  if (S.w && IDX[0] && S.w !== IDX[0].week) q.set("w", S.w);
+  history.replaceState(null, "", "#" + q.toString() + (card ? "&s=" + card : ""));
+}
+
+function rail() {
+  document.querySelectorAll(".country button").forEach(b => b.setAttribute("aria-pressed", b.dataset.r === S.r));
+  $("#topics").innerHTML = TOPICS.map((t, i) => {
+    const off = t.us && S.r !== "US";
+    return (t.id === "pivot" ? "<hr>" : "") +
+      `<button data-t="${t.id}" ${t.id === S.t ? 'aria-current="page"' : ""} ${off ? "disabled" : ""}
+         title="${off ? "한국 공고에는 연봉이 거의 적혀 있지 않아서 미국만 있어요" : ""}">
+         <b>${t.name}</b><small>${off ? "한국 공고엔 연봉이 거의 없어서 미국만" : t.desc}</small></button>`;
+  }).join("");
+  $("#xlsxAll").hidden = S.t === "pivot";
+}
+
+function render() {
+  rail();
+  writeHash();
+  charts.forEach(c => c.destroy()); charts = [];
+  const T = TOPICS.find(t => t.id === S.t);
+  $("#eyebrow").textContent = `${RNAME[S.r]} · ${T.name}`;
+  $("#title").textContent = T.id === "pivot" ? "직접 골라 보기" : `${RNAME[S.r]} ${T.name}`;
+  $("#lead").textContent = T.lead;
+  const G = D.regions[S.r];
+  $("#meta").textContent = `${D.week} 기준 · ${D.updated} 까지 모은 공고 · ${G.since} 부터 모음`;
+  const body = $("#body");
+  if (T.id === "pivot") {
+    body.innerHTML = `<div class="card" style="padding:12px 4px"><iframe class="frame" title="직접 골라 보기" src="pivot.html?embed=1#f.region=${S.r}"></iframe></div>`;
+    const f = body.querySelector("iframe");
+    const fit = () => { try { f.style.height = Math.max(900, f.contentDocument.documentElement.scrollHeight + 20) + "px"; } catch (e) {} };
+    f.addEventListener("load", () => { try { f.contentDocument.documentElement.classList.add("embed"); } catch (e) {} fit(); try { new ResizeObserver(fit).observe(f.contentDocument.body); } catch (e) {} });
+    return;
+  }
+  const secs = G.topics[S.t] || [];
+  const kp = `<div class="kpis">${G.kpis.map(k => `<div class="kpi"><small>${esc(k.label)}</small><b>${esc(k.value)}</b></div>`).join("")}</div>`;
+  const sum = `<section class="card summary"><h2>이 페이지에서 알 수 있는 것</h2><ol>${secs.map(s =>
+    `<li><a href="#" data-go="${s.id}"><span><b>${esc(s.title)}</b><br><em>${esc(firstSentence(s.text))}</em></span></a></li>`).join("")}</ol></section>`;
+  body.innerHTML = kp + sum + secs.map((s, i) => card(s, i)).join("");
+  secs.forEach((s, i) => draw(s, i));
+  const want = new URLSearchParams(location.hash.slice(1)).get("s");
+  if (want) { const el = document.getElementById("c-" + want); if (el) el.scrollIntoView(); }
+}
+function firstSentence(t) { const m = String(t || "").match(/^.*?(요\.|다\.|$)/); return m ? m[0] : t; }
+
+function card(s, i) {
+  const tbl = s.chart.type === "table";
+  return `<section class="card" id="c-${s.id}">
+    <div class="chead"><h2><span class="num">${i + 1}</span>${esc(s.title)}</h2>
+      <div class="dl"><button data-tbl="${i}" aria-expanded="${tbl}">${tbl ? "표 접기" : "표 보기"}</button>
+        <button data-csv="${i}">CSV</button><button data-xlsx="${i}">엑셀</button><button data-link="${s.id}" title="이 카드 링크 복사">링크</button></div></div>
+    ${tbl ? "" : `<div class="chart" id="ch-${i}"><canvas role="img" aria-label="${esc(s.title)} 차트"></canvas></div>`}
+    <p class="insight">${esc(s.text)}</p>
+    <div class="explain"><div><b>읽는 법</b>${esc(s.how)}</div><div><b>실무에 쓰는 법</b>${esc(s.use)}</div></div>
+    ${s.note ? `<p class="note">${esc(s.note)}</p>` : ""}
+    <div class="tablebox" id="tb-${i}" ${tbl ? "" : "hidden"}>${table(s)}</div>
+  </section>`;
+}
+function table(s) {
+  const isNum = v => typeof v === "number" || v === "<5";
+  return `<table><thead><tr>${s.table.cols.map((c, j) => `<th class="${j ? "n" : ""}">${esc(c)}</th>`).join("")}</tr></thead><tbody>${
+    s.table.rows.map(r => `<tr>${r.map(v => `<td class="${isNum(v) ? "n" : ""}">${v == null ? "–" : esc(typeof v === "number" ? v.toLocaleString("ko-KR") : v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+}
+
+const PAL = () => ["--s1", "--s2", "--s3", "--s4", "--s5", "--s6", "--s7", "--s8"].map(css);
+// 막대 끝에 값 쓰기 (한 계열 막대만)
+const endLabels = {
+  id: "endLabels",
+  afterDatasetsDraw(ch, a, o) {
+    if (!o.on) return;
+    const { ctx } = ch; ctx.save(); ctx.font = `500 12px ${css("--sans")}`; ctx.fillStyle = css("--text2");
+    ch.getDatasetMeta(0).data.forEach((el, i) => {
+      const v = ch.data.datasets[0].data[i]; if (v == null) return;
+      const t = fmt(v, o.unit);
+      if (ch.options.indexAxis === "y") { ctx.textBaseline = "middle"; ctx.textAlign = "left"; ctx.fillText(t, el.x + 6, el.y); }
+      else { ctx.textBaseline = "bottom"; ctx.textAlign = "center"; ctx.fillText(t, el.x, el.y - 4); }
+    });
+    ctx.restore();
+  }
+};
+
+function draw(s, i) {
+  const box = document.getElementById("ch-" + i); if (!box) return;
+  const c = s.chart, P = PAL(), grid = css("--line"), tick = css("--muted"), font = { family: css("--sans"), size: 12 };
+  const n = c.labels.length, ns = c.series.length;
+  const horiz = ["hbar", "stack", "range", "groupbar"].includes(c.type);
+  const per = c.type === "groupbar" ? 12 * ns + 10 : 28;
+  box.style.height = (horiz ? Math.max(180, n * per + 56) : 300) + "px";
+  if (!n) { box.innerHTML = `<p class="empty">표본이 적어서 그릴 수 있는 칸이 없어요. 표를 봐 주세요.</p>`; return; }
+  const scaleV = { grid: { color: grid, drawTicks: false }, border: { display: false }, ticks: { color: tick, font, padding: 6, callback: v => fmt(v, c.unit) } };
+  const scaleC = { grid: { display: false }, border: { display: false }, ticks: { color: css("--text2"), font, autoSkip: false } };
+  let type = "bar", data, opt = { indexAxis: horiz ? "y" : "x" }, plugins = {};
+  const one = ns === 1 && ["hbar", "bar"].includes(c.type);
+  if (c.type === "line") {
+    type = "line";
+    data = { labels: c.labels, datasets: c.series.map((se, k) => ({ label: se.name, data: se.data, borderColor: P[k], backgroundColor: P[k],
+      borderWidth: 2, pointRadius: 3, pointHoverRadius: 6, tension: .25 })) };
+  } else if (c.type === "range") {
+    const [lo, md, hi] = c.series.map(x => x.data);
+    data = { labels: c.labels, datasets: [
+      { type: "bar", label: "p25 ~ p75", data: lo.map((v, k) => [v, hi[k]]), backgroundColor: P[0] + "55", borderRadius: 4, borderSkipped: false, barPercentage: .7 },
+      { type: "scatter", label: "중앙값", data: md.map((v, k) => ({ x: v, y: c.labels[k] })), backgroundColor: css("--text"), pointRadius: 4, pointHoverRadius: 6 } ] };
+    plugins.tooltip = { callbacks: { label: ctx => {
+      const k = ctx.dataIndex; return ` p25 ${fmt(lo[k], c.unit)} · 중앙값 ${fmt(md[k], c.unit)} · p75 ${fmt(hi[k], c.unit)}`; } }, filter: x => x.datasetIndex === 0 };
+  } else {
+    data = { labels: c.labels, datasets: c.series.map((se, k) => ({ label: se.name, data: se.data, backgroundColor: one ? P[0] : P[k],
+      borderRadius: c.type === "stack" ? 0 : 4, borderSkipped: c.type === "stack" ? false : "start", maxBarThickness: 26,
+      borderColor: css("--card"), borderWidth: c.type === "stack" ? { right: 2 } : 0 })) };
+  }
+  const stacked = c.type === "stack";
+  const sv = Object.assign({}, scaleV, stacked ? { stacked: true, max: 100 } : {}, c.type === "range" || c.type === "line" ? {} : { beginAtZero: true });
+  if (one) sv.grace = "12%";
+  const sc = Object.assign({}, scaleC, stacked ? { stacked: true } : {});
+  opt.scales = horiz ? { x: sv, y: sc } : { x: sc, y: sv };
+  if (c.type === "range") opt.scales.y.type = "category";
+  plugins.legend = { display: ns > 1 && c.type !== "range" || c.type === "range", position: "top", align: "start",
+    labels: { color: css("--text2"), font, boxWidth: 10, boxHeight: 10, usePointStyle: true } };
+  if (!plugins.tooltip) plugins.tooltip = { callbacks: { label: ctx => ` ${ctx.dataset.label ? ctx.dataset.label + ": " : ""}${fmt(ctx.raw, c.unit)}` } };
+  plugins.endLabels = { on: one, unit: c.unit };
+  if (c.type === "line") plugins.tooltip.mode = "index", plugins.tooltip.intersect = false;
+  const ch = new Chart(box.querySelector("canvas"), { type, data, plugins: [endLabels],
+    options: Object.assign(opt, { responsive: true, maintainAspectRatio: false, animation: false, plugins,
+      interaction: c.type === "line" ? { mode: "index", intersect: false } : { mode: "nearest", intersect: true, axis: horiz ? "y" : "x" } }) });
+  charts.push(ch);
+}
+
+// 내려받기
+function rowsOf(s) { return [s.table.cols].concat(s.table.rows.map(r => r.map(v => v == null ? "" : v))); }
+function fileBase() { return `${D.week}_${S.r}_${S.t}`; }
+function saveBlob(blob, name) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); }
+function csv(s) {
+  const q = v => { const t = String(v); return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+  const head = [[`# ${RNAME[S.r]} ${S.t} · ${s.title}`], [`# ${D.week} 기준 (${D.updated} 까지 모은 공고). 5개 미만은 <5`]];
+  const txt = head.concat(rowsOf(s)).map(r => r.map(q).join(",")).join("\r\n");
+  saveBlob(new Blob(["﻿" + txt], { type: "text/csv;charset=utf-8" }), `${fileBase()}_${s.id}.csv`);
+}
+let XL = null;
+function xlsxLib() {
+  if (XL) return XL;
+  XL = new Promise((ok, no) => { const sc = document.createElement("script");
+    sc.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; sc.onload = () => ok(window.XLSX); sc.onerror = no; document.head.appendChild(sc); });
+  return XL;
+}
+async function xlsx(list, name) {
+  const X = await xlsxLib(), wb = X.utils.book_new(), used = new Set();
+  const info = [["채용 시장 아카이브"], ["나라", RNAME[S.r]], ["주제", TOPICS.find(t => t.id === S.t).name], ["기준 주", D.week], ["모은 날", D.updated],
+    ["안내", "공개 채용 공고를 묶은 숫자예요. 5개 미만인 칸은 <5 로 가렸어요."], [], ["시트", "제목", "요약"]];
+  list.forEach((s, i) => {
+    let nm = `${i + 1} ${s.title}`.replace(/[\[\]:*?\/\\]/g, " ").slice(0, 31);
+    while (used.has(nm)) nm = nm.slice(0, 29) + "_" + i; used.add(nm);
+    info.push([nm, s.title, s.text]);
+    const ws = X.utils.aoa_to_sheet([[s.title], [s.text], []].concat(rowsOf(s)));
+    ws["!cols"] = s.table.cols.map((c, j) => ({ wch: j ? 12 : 30 }));
+    X.utils.book_append_sheet(wb, ws, nm);
+  });
+  const ws0 = X.utils.aoa_to_sheet(info); ws0["!cols"] = [{ wch: 28 }, { wch: 40 }, { wch: 90 }];
+  X.utils.book_append_sheet(wb, ws0, "안내");
+  wb.SheetNames.unshift(wb.SheetNames.pop());
+  X.writeFile(wb, name);
+}
+
+document.addEventListener("click", e => {
+  const b = e.target.closest("button, a[data-go]"); if (!b) return;
+  const secs = (D && D.regions[S.r].topics[S.t]) || [];
+  if (b.dataset.r) { S.r = b.dataset.r; if (S.r === "KR" && S.t === "compensation") S.t = "recruiting"; render(); scrollTo(0, 0); }
+  else if (b.dataset.t) { S.t = b.dataset.t; render(); scrollTo(0, 0); }
+  else if (b.dataset.go) { e.preventDefault(); document.getElementById("c-" + b.dataset.go).scrollIntoView({ behavior: "smooth" }); writeHash(b.dataset.go); }
+  else if (b.dataset.tbl) { const tb = $("#tb-" + b.dataset.tbl), open = tb.hidden; tb.hidden = !open; b.textContent = open ? "표 접기" : "표 보기"; b.setAttribute("aria-expanded", open); }
+  else if (b.dataset.csv) csv(secs[+b.dataset.csv]);
+  else if (b.dataset.xlsx) { const s = secs[+b.dataset.xlsx]; xlsx([s], `${fileBase()}_${s.id}.xlsx`).catch(() => alert("엑셀 도구를 못 불러왔어요. CSV 로 받아 주세요.")); }
+  else if (b.id === "xlsxAll") xlsx(secs, `${fileBase()}.xlsx`).catch(() => alert("엑셀 도구를 못 불러왔어요. CSV 로 받아 주세요."));
+  else if (b.dataset.link) { writeHash(b.dataset.link); navigator.clipboard?.writeText(location.href).then(() => { const t = b.textContent; b.textContent = "복사됨"; setTimeout(() => b.textContent = t, 1200); }); }
+});
+for (const id of ["#week", "#week2"]) $(id).addEventListener("change", e => load(e.target.value));
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => D && render());
+
+function load(w) {
+  S.w = w;
+  ["#week", "#week2"].forEach(id => $(id).value = w);
+  return fetch(`insights/${w}.json`).then(r => r.json()).then(d => { D = d; render(); })
+    .catch(() => { $("#title").textContent = "분석 파일을 못 불러왔어요"; });
+}
+readHash();
+fetch("insights/index.json").then(r => r.json()).then(x => {
+  IDX = x.weeks;
+  const opts = IDX.map((w, i) => `<option value="${w.week}">${w.week}${i ? "" : " (최신)"} · ${w.updated}</option>`).join("");
+  ["#week", "#week2"].forEach(id => $(id).innerHTML = opts);
+  load(IDX.some(w => w.week === S.w) ? S.w : IDX[0].week);
+}).catch(() => { $("#title").textContent = "분석 목록을 못 불러왔어요"; });
+</script>
+</body>
+</html>
