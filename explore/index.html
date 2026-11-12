@@ -166,8 +166,9 @@ const TOPICS = [
     lead: "누가, 어떤 직군을, 얼마나 빨리 뽑고 있는지 봐요." },
   { id: "talent", name: "Talent", desc: "필요 역량 · 우대 역량 · 경력 · 학력",
     lead: "공고 본문에서 회사들이 어떤 역량과 경력을 찾는지 봐요." },
-  { id: "compensation", name: "Compensation", desc: "직군별 · 회사별 페이밴드 (미국만)", us: true,
-    lead: "공고에 적힌 연봉 범위로 직군 · 회사 · 레벨 · 지역별 페이밴드를 봐요." },
+  { id: "compensation", name: "Compensation", desc: "미국: 공고 연봉 범위 · 한국: DART 평균 급여",
+    lead: "공고에 적힌 연봉 범위로 직군 · 회사 · 레벨 · 지역별 페이밴드를 봐요.",
+    leadKR: "한국 공고에는 연봉이 거의 없어서, 회사가 공시한 DART 1인 평균 급여 · 인건비 비율로 회사 · 업종별 보상 수준을 봐요." },
   { id: "er", name: "ER", desc: "고용 형태 · 근무 형태 · 근무 조건",
     lead: "정규직 · 계약직 · 인턴, 출근 · 원격, 비자 · 교대 같은 노무 관련 조건을 봐요." },
   { id: "pivot", name: "직접 골라 보기", desc: "원하는 칸으로 거르고 묶기",
@@ -188,7 +189,6 @@ function readHash() {
   if (RNAME[q.get("r")]) S.r = q.get("r");
   if (TOPICS.some(t => t.id === q.get("t"))) S.t = q.get("t");
   if (q.get("w")) S.w = q.get("w");
-  if (S.r === "KR" && S.t === "compensation") S.t = "recruiting";
 }
 function writeHash(card) {
   const q = new URLSearchParams({ r: S.r, t: S.t });
@@ -215,7 +215,7 @@ function render() {
   const T = TOPICS.find(t => t.id === S.t);
   $("#eyebrow").textContent = `${RNAME[S.r]} · ${T.name}`;
   $("#title").textContent = T.id === "pivot" ? "직접 골라 보기" : `${RNAME[S.r]} ${T.name}`;
-  $("#lead").textContent = T.lead;
+  $("#lead").textContent = (S.r === "KR" && T.leadKR) || T.lead;
   const G = D.regions[S.r];
   $("#meta").textContent = `${D.week} 기준 · ${D.updated} 까지 모은 공고 · ${G.since} 부터 모음`;
   const body = $("#body");
@@ -356,7 +356,7 @@ async function xlsx(list, name) {
 document.addEventListener("click", e => {
   const b = e.target.closest("button, a[data-go]"); if (!b) return;
   const secs = (D && D.regions[S.r].topics[S.t]) || [];
-  if (b.dataset.r) { S.r = b.dataset.r; if (S.r === "KR" && S.t === "compensation") S.t = "recruiting"; render(); scrollTo(0, 0); }
+  if (b.dataset.r) { S.r = b.dataset.r; render(); scrollTo(0, 0); }
   else if (b.dataset.t) { S.t = b.dataset.t; render(); scrollTo(0, 0); }
   else if (b.dataset.go) { e.preventDefault(); document.getElementById("c-" + b.dataset.go).scrollIntoView({ behavior: "smooth" }); writeHash(b.dataset.go); }
   else if (b.dataset.tbl) { const tb = $("#tb-" + b.dataset.tbl), open = tb.hidden; tb.hidden = !open; b.textContent = open ? "표 접기" : "표 보기"; b.setAttribute("aria-expanded", open); }
