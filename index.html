@@ -208,6 +208,8 @@ tr.base td:first-child { font-weight: 700; }
       <div class="updated" id="updated">불러오는 중…</div>
     </div>
     <div class="controls">
+      <label class="field" for="kind"><span>회사 종류</span><select id="kind">
+        <option value="일반">일반 (스타트업·유니콘 등)</option><option value="대기업">대기업 계열사</option><option value="">전체</option></select></label>
       <label class="field" for="base"><span>기준 회사</span><select id="base"></select></label>
       <label class="field" for="ind"><span>산업</span><select id="ind"></select></label>
     </div>
@@ -224,7 +226,7 @@ tr.base td:first-child { font-weight: 700; }
       <a href="#org" id="nav-org"><b>조직도</b><small>공고로 본 부서별 채용</small></a>
       <a href="#table"><b>전체 표</b><small>모든 숫자, 정렬 가능</small></a>
       <a href="explore/"><b>공고 골라 보기 ↗</b><small>직접 거르고 묶어 보는 공고 수</small></a>
-      <p class="src">위에서 고른 기준 회사는 모든 차트에서 주황색이에요. 고른 회사·산업은 이 브라우저에 기억돼요.</p>
+      <p class="src">위에서 고른 기준 회사는 모든 차트에서 주황색이에요. 대기업 계열사와 일반 회사는 규모가 달라서 '회사 종류'를 고르면 그 안에서만 비교해요. 고른 회사·산업은 이 브라우저에 기억돼요.</p>
     </nav>
 
     <main>
@@ -432,7 +434,9 @@ show(location.hash.slice(1) || store.get("ch") || "overview");
 
 fetch("data.json").then(r => r.json()).then(async d => {
   try { await document.fonts.ready; } catch {}  // 캔버스 글꼴이 늦게 바뀌지 않게
-  const cs = d.companies, all = [...cs, ...d.audit_only];
+  // 회사 종류(대기업 계열사 / 일반)를 고르면 아래 cs · all · comparable 이 그 종류로만 바뀐다
+  let cs = d.companies, all = [...cs, ...d.audit_only], comparable = cs;
+  const kindOf = c => c.kind || "일반";
   // 국민연금: 최근 12개월 한 달 평균 입사·퇴사 비율(%)
   const np = (d.nps && d.nps.companies) || {};
   cs.forEach(c => {
@@ -442,8 +446,7 @@ fetch("data.json").then(r => r.json()).then(async d => {
     c.quit_rate = +(s.reduce((a, m) => a + m.lost, 0) / mem * 100).toFixed(1);
     c.nps_net = s.reduce((a, m) => a + m.new - m.lost, 0);
   });
-  const comparable = cs.filter(c => c.fs !== "SEC");  // 쿠팡은 물류 인력까지 들어간 연결 숫자라 중간값 계산에서 뺀다
-  document.getElementById("updated").textContent = `${d.updated} 업데이트 · 공시 숫자가 있는 회사 ${cs.length}곳, 공고만 있는 회사 ${d.audit_only.length}곳`;
+
   Chart.defaults.color = css("--muted");
   Chart.defaults.borderColor = css("--grid");
   Chart.defaults.font.family = css("--sans");
@@ -453,12 +456,30 @@ fetch("data.json").then(r => r.json()).then(async d => {
   Chart.defaults.plugins.legend.display = false;  // 범례는 차트 위 HTML로 그린다
 
   // 기준 회사·산업 고르기 (이 브라우저에만 기억)
-  const baseSel = document.getElementById("base"), indSel = document.getElementById("ind");
-  baseSel.innerHTML = cs.map(c => `<option value="${c.key}">${esc(c.name)}</option>`).join("");
-  baseSel.value = cs.some(c => c.key === store.get("base")) ? store.get("base") : (cs.find(c => c.key === "musinsa") || cs[0]).key;
-  const industries = [...new Set(cs.map(c => c.industry))];
-  indSel.innerHTML = `<option value="">전체</option>` + industries.map(i => `<option>${esc(i)}</option>`).join("");
-  indSel.value = industries.includes(store.get("ind")) ? store.get("ind") : "";
+  const baseSel = document.getElementById("base"), indSel = document.getElementById("ind"), kindSel = document.getElementById("kind");
+  const pick = document.getElementById("pick");
+  kindSel.value = ["일반", "대기업", ""].includes(store.get("kind")) ? store.get("kind") : "일반";
+  function setKind() {
+    const k = kindSel.value, mine = c => !k || kindOf(c) === k;
+    cs = d.companies.filter(mine);
+    if (!cs.length) { kindSel.value = ""; return setKind(); }
+    store.set("kind", k);
+    const audit = d.audit_only.filter(mine);
+    all = [...cs, ...audit];
+    comparable = cs.filter(c => c.fs !== "SEC");  // 쿠팡은 물류 인력까지 들어간 연결 숫자라 중간값 계산에서 뺀다
+    document.getElementById("updated").textContent = `${d.updated} 업데이트 · ${k ? k === "대기업" ? "대기업 계열사 " : "일반 회사 " : ""}공시 숫자가 있는 회사 ${cs.length}곳, 공고만 있는 회사 ${audit.length}곳`;
+    const opts = cs.map(c => `<option value="${c.key}">${esc(c.name)}${c.group && kindOf(c) === "대기업" ? ` (${esc(c.group)})` : ""}</option>`).join("");
+    const prev = baseSel.value || store.get("base");
+    baseSel.innerHTML = opts; pick.innerHTML = opts;
+    baseSel.value = cs.some(c => c.key === prev) ? prev : (cs.find(c => c.key === "musinsa") || cs[0]).key;
+    pick.value = baseSel.value;
+    const industries = [...new Set(cs.map(c => c.industry))], pi = indSel.value || store.get("ind");
+    indSel.innerHTML = `<option value="">전체</option>` + industries.map(i => `<option>${esc(i)}</option>`).join("");
+    indSel.value = industries.includes(pi) ? pi : "";
+    document.getElementById("audit").innerHTML = audit.map(c =>
+      `<span class="chip">${esc(c.name)} · 공고 ${c.postings.open}${c.postings.hr ? ` (HR ${c.postings.hr})` : ""}</span>`).join("");
+  }
+  setKind();
 
 
   function render() {
@@ -660,8 +681,6 @@ fetch("data.json").then(r => r.json()).then(async d => {
   }
 
   // ── 회사별 분기 흐름 ──
-  const pick = document.getElementById("pick");
-  pick.innerHTML = cs.map(c => `<option value="${c.key}">${esc(c.name)}</option>`).join("");
   function trend() {
     const c = cs.find(x => x.key === pick.value), qs = c.quarters.slice(-12);
     make("t-rev", { type: "bar", data: { labels: qs.map(q => q.p), datasets: [
@@ -686,7 +705,7 @@ fetch("data.json").then(r => r.json()).then(async d => {
       ["평균 연봉", c.avg_salary, "avg_salary", man], ["평균 근속", c.tenure, "tenure", v => v == null ? "–" : v.toFixed(1) + "년"], ["계약직 비율", c.contract_ratio, "contract_ratio", v => v == null ? "–" : v.toFixed(1) + "%"],
       ["한 달 퇴사 비율", c.quit_rate, "quit_rate", v => v == null ? "–" : v.toFixed(1) + "%"], ["한 달 입사 비율", c.join_rate, "join_rate", v => v == null ? "–" : v.toFixed(1) + "%"]];
     document.getElementById("cmp-title").textContent = `${c.name} vs 중간값`;
-    document.getElementById("cmp").innerHTML = `<thead><tr><th>항목</th><th>${esc(c.name)}</th><th>${esc(c.industry)} 중간값 (${peers.length}곳)</th><th>전체 중간값</th></tr></thead><tbody>` +
+    document.getElementById("cmp").innerHTML = `<thead><tr><th>항목</th><th>${esc(c.name)}</th><th>${esc(c.industry)} 중간값 (${peers.length}곳)</th><th>${kindSel.value ? esc(kindSel.value === "대기업" ? "대기업 계열사" : "일반 회사") + " " : ""}전체 중간값</th></tr></thead><tbody>` +
       rows.map(([label, v, k, f]) => `<tr><td>${label}</td><td><b>${f(v)}</b></td><td>${f(median(peers.map(x => x[k])))}</td><td>${f(median(comparable.map(x => x[k])))}</td></tr>`).join("") + "</tbody>";
   }
   pick.onchange = trend;
@@ -757,9 +776,7 @@ fetch("data.json").then(r => r.json()).then(async d => {
     });
   }
 
-  document.getElementById("audit").innerHTML = d.audit_only.map(c =>
-    `<span class="chip">${esc(c.name)} · 공고 ${c.postings.open}${c.postings.hr ? ` (HR ${c.postings.hr})` : ""}</span>`).join("");
-
+  kindSel.onchange = () => { setKind(); trend(); render(); };
   baseSel.onchange = () => { pick.value = baseSel.value; trend(); render(); };
   indSel.onchange = render;
   pick.value = baseSel.value;
