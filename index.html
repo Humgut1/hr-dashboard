@@ -227,6 +227,9 @@ tr.base td:first-child { font-weight: 700; }
       <a href="#table"><b>전체 표</b><small>모든 숫자, 정렬 가능</small></a>
       <a href="explore/"><b>공고 골라 보기 ↗</b><small>직접 거르고 묶어 보는 공고 수</small></a>
       <a href="explore/game.html"><b>게임 업종 ↗</b><small>게임 회사 공고 · 인원 흐름</small></a>
+      <!-- 공고뱅크는 공고명 · 본문이 들어 있는 비공개 화면이라 이 PC(localhost)에서 열 때만 보인다 (공개 사이트에는 그 파일이 없다) -->
+      <a href="bank.html" id="nav-bank" hidden><b>공고뱅크 ↗</b><small>모든 회사 공고 찾기 · 본문 보기 (이 PC만)</small></a>
+      <script>if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) document.getElementById("nav-bank").hidden = false;</script>
       <p class="src">위에서 고른 기준 회사는 모든 차트에서 주황색이에요. 대기업 계열사와 일반 회사는 규모가 달라서 '회사 종류'를 고르면 그 안에서만 비교해요. 고른 회사·산업은 이 브라우저에 기억돼요.</p>
     </nav>
 
