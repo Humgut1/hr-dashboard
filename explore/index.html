@@ -423,5 +423,6 @@ fetch("insights/index.json").then(r => r.json()).then(x => {
   load(IDX.some(w => w.week === S.w) ? S.w : IDX[0].week);
 }).catch(() => { $("#title").textContent = "분석 목록을 못 불러왔어요"; });
 </script>
+<script src="https://humgut1.github.io/home.js" defer></script>
 </body>
 </html>

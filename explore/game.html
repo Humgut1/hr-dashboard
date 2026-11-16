@@ -300,5 +300,6 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => G &&
 fetch("game.json", {cache: "no-store"}).then(r => r.json()).then(d => { G = d; render(); })
   .catch(() => { $("meta").textContent = "자료를 불러오지 못했습니다. 잠시 뒤 다시 열어 주세요."; });
 </script>
+<script src="https://humgut1.github.io/home.js" defer></script>
 </body>
 </html>
