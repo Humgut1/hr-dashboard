@@ -9,6 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 /* 공개 '게임 업종 채용' 대시보드. 자료는 game.json (game_dash.py 가 매일 만든다. 묶은 숫자만, 직군 칸 5개 미만은 <5).
+   인력이동 · 신규 사업 칸도 개수뿐이다 (이름이 있는 기록장은 비공개 game_private.html).
    공고명 · 링크 · 조직/프로젝트 이름은 여기 없다 (디스코드 게임 채널에만). 색·글꼴은 explore/index.html 과 같다. */
 :root {
   color-scheme: light;
@@ -113,6 +114,22 @@ td.up { color: var(--s3); font-weight: 600; } td.down { color: var(--s2); font-w
   </section>
 
   <section class="card">
+    <h2>인력이동 낌새 · 닫힌 공고와 새 공고</h2>
+    <p class="sub" id="pFlow">최근 30일 동안 직군마다 새로 열린 공고와 닫힌 공고 수입니다. 한 직군에서 닫힌 공고가 많고 같은 때 새 공고도 많으면 사람이 움직이는 때일 수 있습니다.</p>
+    <div class="chart" id="boxFlow"><canvas id="cFlow"></canvas></div>
+    <div class="tablebox"><table id="tFlow"></table></div>
+    <p class="note">공고가 닫혔다고 사람이 옮겼다는 뜻은 아닙니다 (뽑았거나, 접었거나). 국민연금 칸은 가장 최근 석 달 동안 들어온 사람 · 나간 사람이고 두 달쯤 늦습니다. 5개 미만인 직군은 그림에서 빼고 &lt;5 로 적습니다.</p>
+  </section>
+
+  <section class="card">
+    <h2>신규 사업 낌새 · 조직과 프로젝트 이름 수</h2>
+    <p class="sub">공고명에 적힌 조직 · 프로젝트 이름을 날마다 기록합니다. 처음 보는 이름이 생기면 새 조직이나 신작일 수 있습니다. 여기에는 개수만 싣습니다.</p>
+    <div class="chart" id="boxNew"><canvas id="cNew"></canvas></div>
+    <div class="tablebox"><table id="tNew"></table></div>
+    <p class="note">'신작 관련 공고'는 공고명에 신작 · 신규 프로젝트 · 미공개 · 차기작 같은 말이 있는 열린 공고입니다. '처음 본 이름'은 회사를 모으기 시작한 뒤에 새로 나온 이름만 세므로, 모은 날이 짧은 회사는 0 으로 나옵니다.</p>
+  </section>
+
+  <section class="card">
     <h2>국민연금 가입자 수로 본 인원 흐름</h2>
     <p class="sub">회사가 국민연금에 신고한 가입자 수입니다. 직원 수와 거의 같이 움직입니다.</p>
     <div class="two">
@@ -205,6 +222,38 @@ function render() {
     options: {indexAxis: "y", scales: {x: {beginAtZero: true}, y: {grid: {display: false}}}}});
   table("tMx", [{t: "회사"}].concat(J.matrix.cols.map(c => ({t: c, n: 1}))),
     J.matrix.rows.map(r => [r.name].concat(r.cells.map(v => ({v: v === 0 ? "·" : fmt(v), c: typeof v === "number" && v ? "" : "dim"})))));
+
+  // 인력이동 낌새
+  const F = G.flow;
+  if (F) {
+    const fc = F.categories.filter(c => typeof c.new === "number" && typeof c.closed === "number" && c.new + c.closed > 0);
+    $("boxFlow").style.height = Math.max(160, fc.length * 34 + 60) + "px";
+    draw("cFlow", {type: "bar", data: {labels: fc.map(c => c.name), datasets: [
+      {label: "새로 열린 공고", data: fc.map(c => c.new), backgroundColor: s3, borderRadius: 4},
+      {label: "닫힌 공고", data: fc.map(c => -c.closed), backgroundColor: s2, borderRadius: 4}]},
+      options: {indexAxis: "y", scales: {x: {stacked: true, ticks: {precision: 0, callback: v => Math.abs(v)}}, y: {stacked: true, grid: {display: false}}},
+        plugins: {tooltip: {callbacks: {label: it => `${it.dataset.label}: ${Math.abs(it.parsed.x)}개`}}}}});
+    const byName = Object.fromEntries(N.companies.map(c => [c.name, c]));
+    const sign = v => v == null ? "–" : (v > 0 ? "+" : "") + fmt(v);
+    const cl = v => !v ? "dim" : v < 0 ? "down" : "up";
+    const moved = co.filter(c => c.new30 || c.closed30 || byName[c.name]).map(c => {
+      const n = byName[c.name], net = c.new30 - c.closed30, pn = n ? n.joined3 - n.left3 : null;
+      return [c.name, fmt(c.new30), fmt(c.closed30), {v: sign(net), c: cl(net)}, n ? fmt(n.joined3) : "–", n ? fmt(n.left3) : "–", {v: sign(pn), c: cl(pn)}, {v: n ? n.month : "–", c: "dim"}];
+    });
+    table("tFlow", [{t: "회사"}, {t: "30일 새 공고", n: 1}, {t: "30일 닫힌 공고", n: 1}, {t: "공고 순증감", n: 1}, {t: "석 달 들어온 사람", n: 1}, {t: "석 달 나간 사람", n: 1}, {t: "사람 순증감", n: 1}, {t: "국민연금 기준 달"}], moved);
+
+    // 신규 사업 낌새
+    const U = co.map(c => Object.assign({name: c.name}, F.units[c.name] || {})).filter(u => u.days);
+    const hot = U.filter(u => u.newgame_open || u.units_new).sort((a, b) => (b.newgame_open + b.units_new) - (a.newgame_open + a.units_new)).slice(0, 15);
+    $("boxNew").style.height = Math.max(160, hot.length * 30 + 60) + "px";
+    draw("cNew", {type: "bar", data: {labels: hot.map(u => u.name), datasets: [
+      {label: "신작 관련 열린 공고", data: hot.map(u => u.newgame_open), backgroundColor: s1, borderRadius: 4},
+      {label: "최근 30일 처음 본 이름", data: hot.map(u => u.units_new), backgroundColor: s3, borderRadius: 4}]},
+      options: {indexAxis: "y", scales: {x: {beginAtZero: true, ticks: {precision: 0}}, y: {grid: {display: false}, ticks: {autoSkip: false}}}}});
+    table("tNew", [{t: "회사"}, {t: "신작 관련 열린 공고", n: 1}, {t: "최근 30일 처음 본 이름", n: 1}, {t: "열린 공고에 나온 이름", n: 1}, {t: "모은 날 수", n: 1}],
+      U.sort((a, b) => (b.newgame_open + b.units_new) - (a.newgame_open + a.units_new) || b.units_open - a.units_open)
+        .map(u => [u.name, fmt(u.newgame_open), fmt(u.units_new), fmt(u.units_open), {v: u.days + "일", c: "dim"}]));
+  }
 
   // 국민연금
   $("hTot").textContent = `게임 회사 ${N.total.count}곳 합계 (모든 달에 숫자가 있는 회사)`;
