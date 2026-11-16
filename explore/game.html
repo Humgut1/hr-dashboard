@@ -44,6 +44,10 @@ select { font: 600 14px var(--sans); padding: 9px 32px 9px 12px; border-radius: 
 main { padding: 28px 24px 80px; max-width: 1080px; margin: 0 auto; }
 .top { display: flex; gap: 14px; font-size: 13px; font-weight: 600; margin-bottom: 14px; }
 .top a { text-decoration: none; }
+.tabs { display: flex; gap: 4px; background: var(--card); border-radius: 14px; padding: 4px; width: fit-content; max-width: 100%; overflow-x: auto; margin-bottom: 18px; }
+.tabs a { padding: 7px 14px; border-radius: 10px; font-size: 14px; font-weight: 600; color: var(--text2); white-space: nowrap; text-decoration: none; }
+.tabs a[aria-current="page"] { background: var(--tint); color: var(--tint-text); }
+.tabs[hidden] { display: none; }
 .eyebrow { font-size: 13px; font-weight: 600; color: var(--ink); margin: 0 0 4px; }
 h1 { font-size: clamp(24px, 3vw, 30px); font-weight: 700; letter-spacing: -.03em; margin: 0; line-height: 1.3; }
 h2 { font-size: 18px; font-weight: 700; margin: 0; letter-spacing: -.02em; }
@@ -81,6 +85,13 @@ td.up { color: var(--s3); font-weight: 600; } td.down { color: var(--s2); font-w
 <body>
 <main>
   <div class="top"><a href="../">← 대시보드</a><a href="./">채용 시장 아카이브</a></div>
+  <!-- 공고 모아 보기 · 기록장은 비공개 화면이라 이 PC(localhost)에서 열 때만 탭이 보인다 (공개 사이트에는 그 파일이 없다) -->
+  <nav class="tabs" id="tabs" aria-label="게임 업종 화면" hidden>
+    <a href="game.html" aria-current="page">대시보드</a>
+    <a href="../game_jobs.html">공고 모아 보기</a>
+    <a href="../game_private.html">기록장</a>
+  </nav>
+  <script>if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) document.getElementById("tabs").hidden = false;</script>
   <p class="eyebrow">게임 업종</p>
   <h1>게임 업종 채용 · 인원 흐름</h1>
   <p class="lead">게임 회사의 채용 공고 수와 국민연금 가입자 수를 날마다 모아서 보여 줍니다.</p>
