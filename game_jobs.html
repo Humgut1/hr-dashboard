@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>게임 공고 모아 보기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="bank.css">
+<!-- 비공개 화면. 게임 회사 공고만 보는 공고뱅크 (게임 대시보드의 '공고 모아 보기' 탭).
+     자료는 bank.json · bank/<회사>.json (job_bank.py 가 만든다), 코드는 bank.js · bank.css. 공개 사이트에는 lock.py 가 비밀번호로 잠근 자료(p/*.bin)만 올라간다 (원본 JSON 은 안 올림).
+     이 PC에서  python -m http.server 8765 -d docs  로 연다. -->
+</head>
+<body data-mode="game">
+<main>
+  <nav class="tabs" aria-label="게임 업종 화면">
+    <a href="explore/game.html">대시보드</a>
+    <a href="game_jobs.html" aria-current="page">공고 모아 보기</a>
+    <a href="game_private.html">기록장</a>
+  </nav>
+  <p class="eyebrow">게임 업종 <span>비공개 · 비밀번호</span></p>
+  <h1>게임 회사 공고 모아 보기</h1>
+  <p class="meta" id="meta">불러오는 중…</p>
+  <div class="search">
+    <input type="search" id="q" placeholder="공고명 · 조직 · 회사로 찾기 · 예: 언리얼, 클라이언트, 원화" aria-label="공고 찾기">
+    <label class="check"><input type="checkbox" id="deep"> 본문까지 찾기</label>
+    <p class="hint" id="deepNote">띄어 쓴 낱말은 모두 들어간 공고만 찾습니다. 본문까지 찾기를 켜면 공고 내용 안의 낱말(예: 언리얼, SAP, 영어)도 찾습니다.</p>
+  </div>
+
+  <div class="layout">
+    <aside class="side" id="side">
+      <h3>상태</h3>
+      <div class="chips" id="fState"></div>
+      <h3>직군 <button type="button" data-clear="cat">전체</button></h3>
+      <div class="chips" id="fCat"></div>
+      <h3>고용 형태 <button type="button" data-clear="emp">전체</button></h3>
+      <div class="chips" id="fEmp"></div>
+      <h3>경력 <button type="button" data-clear="car">전체</button></h3>
+      <div class="chips" id="fCar"></div>
+      <h3>기간</h3>
+      <div class="chips" id="fNew"></div>
+      <h3>회사 <button type="button" data-clear="co">전체</button></h3>
+      <input type="search" id="coQ" placeholder="회사 찾기">
+      <div class="colist" id="fCo"></div>
+      <button type="button" class="reset" id="reset">조건 모두 지우기</button>
+    </aside>
+
+    <section>
+      <div class="head">
+        <div><button type="button" class="filt" id="filt">조건 고르기</button> <b id="count"></b></div>
+        <select id="sort" aria-label="정렬">
+          <option value="hit">찾는 말과 잘 맞는 순</option>
+          <option value="new">처음 본 날 최신 순</option>
+          <option value="old">오래 열린 순</option>
+          <option value="due">마감 날짜 가까운 순</option>
+          <option value="co">회사 이름 순</option>
+        </select>
+      </div>
+      <div class="list" id="list"></div>
+      <div class="pager" id="pager"></div>
+    </section>
+  </div>
+</main>
+<script src="lock.js"></script>
+<script src="bank.js"></script>
+</body>
+</html>
