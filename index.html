@@ -6,6 +6,7 @@
 <title>채용·인원 대시보드</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="lock.js"></script>
 <style>
 /* 레이아웃: 왼쪽에 장(章) 목록, 오른쪽에 한 번에 한 장만. 휴대폰에서는 장 목록이 위쪽 가로 탭이 된다.
    생김새는 토스 앱 느낌: Pretendard 글꼴, 토스 회색·파랑, 선 없는 흰 카드에 크게 둥근 모서리.
@@ -197,6 +198,9 @@ tr.base td:first-child { font-weight: 700; }
   .tile b { font-size: 22px; }
   .card { padding: 18px; }
 }
+#ch-org.locked > :not(.ph):not(#org-lock):not(.next) { display: none; }
+#ch-org.locked .pickrow .field { display: none; }
+.lock-btn { font: inherit; font-weight: 600; padding: 10px 18px; border: 0; border-radius: 10px; background: var(--ink); color: #fff; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -227,9 +231,8 @@ tr.base td:first-child { font-weight: 700; }
       <a href="#table"><b>전체 표</b><small>모든 숫자, 정렬 가능</small></a>
       <a href="explore/"><b>공고 골라 보기 ↗</b><small>직접 거르고 묶어 보는 공고 수</small></a>
       <a href="explore/game.html"><b>게임 업종 ↗</b><small>게임 회사 공고 · 인원 흐름</small></a>
-      <!-- 공고뱅크는 공고명 · 본문이 들어 있는 비공개 화면이라 이 PC(localhost)에서 열 때만 보인다 (공개 사이트에는 그 파일이 없다) -->
-      <a href="bank.html" id="nav-bank" hidden><b>공고뱅크 ↗</b><small>모든 회사 공고 찾기 · 본문 보기 (이 PC만)</small></a>
-      <script>if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) document.getElementById("nav-bank").hidden = false;</script>
+      <!-- 공고뱅크는 공고명 · 본문이 들어 있는 비공개 화면이라 공개 사이트에서는 비밀번호를 넣어야 열린다 (lock.js) -->
+      <a href="bank.html" id="nav-bank"><b>공고뱅크 ↗</b><small>모든 회사 공고 찾기 · 본문 보기 (비밀번호)</small></a>
       <p class="src">위에서 고른 기준 회사는 모든 차트에서 주황색이에요. 대기업 계열사와 일반 회사는 규모가 달라서 '회사 종류'를 고르면 그 안에서만 비교해요. 고른 회사·산업은 이 브라우저에 기억돼요.</p>
     </nav>
 
@@ -361,7 +364,7 @@ tr.base td:first-child { font-weight: 700; }
         <div class="next"><a href="#org"><small>다음 장</small>조직도 →</a></div>
       </section>
 
-      <!-- 7. 조직도 (docs/org.json, 공개 저장소로는 안 보냄. 파일이 없으면 이 장은 숨는다) -->
+      <!-- 7. 조직도 (docs/org.json. 공개 사이트에는 비밀번호로 잠근 p/org.json.bin 만 올라가서, 비밀번호를 넣어야 보인다) -->
       <section class="panel" id="ch-org" data-ch="org" aria-labelledby="h-org" hidden>
         <div class="ph">
           <p class="eyebrow">회사 채용공고 · 매일 · 토스·당근·크래프톤·카카오·넥슨·쿠팡·무신사</p>
@@ -370,6 +373,11 @@ tr.base td:first-child { font-weight: 700; }
             <label class="field" for="org-pick"><span>볼 회사</span><select id="org-pick"></select></label>
           </div>
           <p class="lead">공고 제목과 조직 소개에 적힌 부서 이름으로 그린 조직도예요. 부서를 누르면 그 부서가 언제 어떤 공고를 냈는지 나와요. 처음 보는 부서가 공고에 나오면 다음 날 자동으로 들어가요.</p>
+        </div>
+        <div class="fig org-lock" id="org-lock" hidden>
+          <h3>비밀번호를 넣으면 보여요</h3>
+          <p class="desc">조직도는 공고 원문에서 뽑은 부서 이름이 들어 있어서 비밀번호로 잠가 뒀어요. 한 번 넣으면 이 브라우저에서는 다시 안 물어요.</p>
+          <p><button type="button" id="org-open" class="lock-btn">비밀번호 넣고 열기</button></p>
         </div>
         <div class="tiles" id="org-tiles"></div>
         <div class="fig">
@@ -787,7 +795,7 @@ fetch("data.json").then(r => r.json()).then(async d => {
   render(); trend(); coupang();
 });
 
-// ── 조직도: docs/org.json (org.py 가 매일 만든다). 파일이 없으면(공개 페이지) 이 장을 숨긴다 ──
+// ── 조직도: docs/org.json (org.py 가 매일 만든다). 공개 사이트에서는 LOCK 으로 잠긴 파일을 비밀번호로 연다. 이 PC에서 파일이 없으면 이 장을 숨긴다 ──
 (() => {
   const NS = "http://www.w3.org/2000/svg", sec = document.getElementById("ch-org"), pick = document.getElementById("org-pick");
   const COLW = 250, GAP = 20, IND = 16, HT = { root: 46, ent: 42, div: 34, team: 28 };
@@ -810,8 +818,9 @@ fetch("data.json").then(r => r.json()).then(async d => {
     if (location.hash === "#org" || store.get("ch") === "org") show("overview");
   };
   const cur = () => O.companies.find(c => c.key === pick.value) || O.companies[0];
-  fetch("org.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
-    O = d;
+  const locked = on => { sec.classList.toggle("locked", on); document.getElementById("org-lock").hidden = !on; };
+  const load = () => LOCK.json("org.json").then(d => {
+    O = d; locked(false);
     pick.innerHTML = d.companies.map(c => `<option value="${c.key}">${esc(c.name)}</option>`).join("");
     pick.value = store.get("org") || ""; if (!pick.value) pick.value = d.companies[0].key;
     pick.onchange = () => { store.set("org", pick.value); render(); };
@@ -819,7 +828,9 @@ fetch("data.json").then(r => r.json()).then(async d => {
     if (!sec.hidden) render();
     let t; addEventListener("resize", () => { clearTimeout(t); t = setTimeout(() => !sec.hidden && draw(cur()), 150); });
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => !sec.hidden && draw(cur()));
-  }).catch(off);
+  }).catch(() => LOCK.local ? off() : locked(true));
+  document.getElementById("org-open").onclick = load;
+  if (LOCK.has()) load(); else locked(true);
 
   function render() {
     if (!O || sec.hidden) return;
