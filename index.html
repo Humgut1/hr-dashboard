@@ -141,6 +141,14 @@ tr.base td:first-child { font-weight: 700; }
 .cmp td:nth-child(2) { color: var(--text); }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 .chip { background: var(--sunken); border-radius: 999px; padding: 5px 13px; font-size: 13.5px; font-weight: 500; color: var(--text2); }
+/* 업종 고르기: 여러 개 골라도 됨, 아무것도 안 고르면 전체 */
+.indbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 16px; padding: 12px 14px; background: var(--card); border-radius: 16px; }
+.indbar > span { font-size: 13px; font-weight: 600; color: var(--muted); margin-right: 4px; }
+.indbar button { font: 500 13.5px var(--sans); letter-spacing: -.01em; border: 0; cursor: pointer; border-radius: 999px; padding: 5px 12px; background: var(--sunken); color: var(--text2); }
+.indbar button small { color: var(--muted); font-size: 12px; margin-left: 3px; }
+.indbar button[aria-pressed="true"] { background: var(--s1); color: #fff; }
+.indbar button[aria-pressed="true"] small { color: rgb(255 255 255 / .8); }
+.indbar button.all { font-weight: 600; }
 .pickrow { display: flex; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; align-items: flex-end; }
 .note { color: var(--muted); font-size: 13px; margin: 0; max-width: 90ch; }
 
@@ -215,7 +223,6 @@ tr.base td:first-child { font-weight: 700; }
       <label class="field" for="kind"><span>회사 종류</span><select id="kind">
         <option value="일반">일반 (스타트업·유니콘 등)</option><option value="대기업">대기업 계열사</option><option value="">전체</option></select></label>
       <label class="field" for="base"><span>기준 회사</span><select id="base"></select></label>
-      <label class="field" for="ind"><span>산업</span><select id="ind"></select></label>
     </div>
   </header>
 
@@ -256,10 +263,11 @@ tr.base td:first-child { font-weight: 700; }
           <h2 id="h-flow">사업·인원</h2>
           <p class="lead">매출이 크는 속도만큼 사람을 늘리고 있는지, 같은 산업과 비교해 사람이 많은 편인지 봐요.</p>
         </div>
+        <div class="indbar" role="group" aria-label="업종 고르기"></div>
         <div class="fig">
           <h3>매출 성장 vs 인원 증가</h3>
           <p class="desc">점선은 매출과 인원이 같은 속도로 늘어나는 선이에요. 점선 위는 사람이 매출보다 빨리 늘어난 곳, 아래는 적은 인원으로 매출을 키운 곳이에요.</p>
-          <div class="legend"><span><i style="background:var(--s2)"></i>기준 회사</span><span><i style="background:var(--s1)"></i>고른 산업</span><span><i style="background:var(--dim)"></i>다른 산업</span><span><i class="tri"></i>범위 밖 (실제 값을 적음)</span></div>
+          <div class="legend"><span><i style="background:var(--s2)"></i>기준 회사</span><span><i style="background:var(--s1)"></i>고른 업종</span><span><i style="background:var(--dim)"></i>다른 업종</span><span><i class="tri"></i>범위 밖 (실제 값을 적음)</span></div>
           <div class="chart tall"><canvas id="quad" role="img" aria-label="회사별 매출 증감률과 인원 증감률 산점도"></canvas></div>
           <p class="how">점 크기는 직원 수예요. 0 근처에 회사가 몰려 있어서 0 근처를 넓게, ±50%·±100% 같은 큰 값은 좁게 그렸어요.</p>
         </div>
@@ -279,7 +287,8 @@ tr.base td:first-child { font-weight: 700; }
           <h2 id="h-pay">보상·근속</h2>
           <p class="lead">버는 만큼 주는지, 많이 주는 곳에서 사람이 오래 머무는지 봐요.</p>
         </div>
-        <div class="legend"><span><i style="background:var(--s2)"></i>기준 회사</span><span><i style="background:var(--s1)"></i>고른 산업</span><span><i style="background:var(--dim)"></i>다른 산업</span></div>
+        <div class="indbar" role="group" aria-label="업종 고르기"></div>
+        <div class="legend"><span><i style="background:var(--s2)"></i>기준 회사</span><span><i style="background:var(--s1)"></i>고른 업종</span><span><i style="background:var(--dim)"></i>다른 업종</span></div>
         <div class="grid2">
           <div class="fig">
             <h3>생산성 대비 보상</h3>
@@ -302,6 +311,7 @@ tr.base td:first-child { font-weight: 700; }
           <h2 id="h-hiring">채용·이직</h2>
           <p class="lead">지금 누가 사람을 적극적으로 뽑는지, 사람이 얼마나 자주 들어오고 나가는지 봐요.</p>
         </div>
+        <div class="indbar" role="group" aria-label="업종 고르기"></div>
         <div class="fig">
           <h3>입사·퇴사: 한 달에 몇 %가 들어오고 나가나</h3>
           <p class="desc">최근 12개월 평균이에요. 한 달 입사 수 ÷ 가입자 수, 한 달 퇴사 수 ÷ 가입자 수예요. ×12 하면 대략 1년 이직률이에요.</p>
@@ -398,6 +408,7 @@ tr.base td:first-child { font-weight: 700; }
           <h2 id="h-table">전체 표</h2>
           <p class="lead">매출·영업이익은 최근 4개 분기 합(별도 재무제표), 직원 수는 가장 최근 공시 기준이에요. 따로 공시하는 계열사는 줄이 따로 있어요(모회사 숫자에는 안 들어가요).</p>
         </div>
+        <div class="indbar" role="group" aria-label="업종 고르기"></div>
         <div class="fig">
           <div class="scroll"><table id="table"></table></div>
         </div>
@@ -468,7 +479,10 @@ fetch("data.json").then(r => r.json()).then(async d => {
   Chart.defaults.plugins.legend.display = false;  // 범례는 차트 위 HTML로 그린다
 
   // 기준 회사·산업 고르기 (이 브라우저에만 기억)
-  const baseSel = document.getElementById("base"), indSel = document.getElementById("ind"), kindSel = document.getElementById("kind");
+  const baseSel = document.getElementById("base"), kindSel = document.getElementById("kind");
+  // 고른 업종 (비어 있으면 전체). 처음 오면 기준 회사 업종만 보여 준다
+  let inds = null;
+  try { const v = JSON.parse(store.get("inds")); if (Array.isArray(v)) inds = new Set(v); } catch {}
   const pick = document.getElementById("pick");
   kindSel.value = ["일반", "대기업", ""].includes(store.get("kind")) ? store.get("kind") : "일반";
   function setKind() {
@@ -485,9 +499,19 @@ fetch("data.json").then(r => r.json()).then(async d => {
     baseSel.innerHTML = opts; pick.innerHTML = opts;
     baseSel.value = cs.some(c => c.key === prev) ? prev : (cs.find(c => c.key === "musinsa") || cs[0]).key;
     pick.value = baseSel.value;
-    const industries = [...new Set(cs.map(c => c.industry))], pi = indSel.value || store.get("ind");
-    indSel.innerHTML = `<option value="">전체</option>` + industries.map(i => `<option>${esc(i)}</option>`).join("");
-    indSel.value = industries.includes(pi) ? pi : "";
+    const cnt = {}; cs.forEach(c => cnt[c.industry] = (cnt[c.industry] || 0) + 1);
+    const industries = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]);
+    if (!inds) inds = new Set([cs.find(c => c.key === baseSel.value).industry]);
+    inds = new Set([...inds].filter(i => cnt[i]));
+    document.querySelectorAll(".indbar").forEach(bar => {
+      bar.innerHTML = `<span>업종</span><button type="button" class="all" data-i="">전체<small>${cs.length}</small></button>` +
+        industries.map(i => `<button type="button" data-i="${esc(i)}">${esc(i)}<small>${cnt[i]}</small></button>`).join("");
+      bar.querySelectorAll("button").forEach(b => b.onclick = () => {
+        const i = b.dataset.i;
+        if (!i) inds.clear(); else inds.has(i) ? inds.delete(i) : inds.add(i);
+        render();
+      });
+    });
     document.getElementById("audit").innerHTML = audit.map(c =>
       `<span class="chip">${esc(c.name)} · 공고 ${c.postings.open}${c.postings.hr ? ` (HR ${c.postings.hr})` : ""}</span>`).join("");
   }
@@ -495,10 +519,11 @@ fetch("data.json").then(r => r.json()).then(async d => {
 
 
   function render() {
-    store.set("base", baseSel.value); store.set("ind", indSel.value);
-    const base = cs.find(c => c.key === baseSel.value), ind = indSel.value;
-    const shown = cs.filter(c => !ind || c.industry === ind);
-    const colorOf = c => c === base ? css("--s2") : !ind || c.industry === ind ? css("--s1") : css("--dim");
+    store.set("base", baseSel.value); store.set("inds", JSON.stringify([...inds]));
+    document.querySelectorAll(".indbar button").forEach(b => b.setAttribute("aria-pressed", b.dataset.i ? inds.has(b.dataset.i) : !inds.size));
+    const base = cs.find(c => c.key === baseSel.value), on = c => !inds.size || inds.has(c.industry);
+    const shown = cs.filter(c => c === base || on(c));  // 기준 회사는 업종이 달라도 늘 같이 보여 준다
+    const colorOf = c => c === base ? css("--s2") : on(c) ? css("--s1") : css("--dim");
     tiles(base); cards(base); quad(base, colorOf); pay(base, colorOf); size(base, shown); hire(base, shown); turn(base, shown); table(base, shown);
   }
 
@@ -655,7 +680,8 @@ fetch("data.json").then(r => r.json()).then(async d => {
   }
 
   // ── 인원 수준·채용 강도 (가로 막대) ──
-  const hbar = (id, list, vals, fmt, colors, tip, title) => make(id, {
+  const fit = (id, rows, per) => document.getElementById(id).parentElement.style.height = Math.max(200, rows * per + 70) + "px";
+  const hbar = (id, list, vals, fmt, colors, tip, title) => fit(id, list.length, 24) && make(id, {
     type: "bar",
     data: { labels: list.map(c => c.name), datasets: [{ data: vals, backgroundColor: colors, borderRadius: 4, borderSkipped: false, barPercentage: .8, categoryPercentage: .9 }] },
     options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: x => tip(list[x.dataIndex], x.raw) } } },
@@ -679,6 +705,7 @@ fetch("data.json").then(r => r.json()).then(async d => {
 
   function turn(base, shown) {
     const list = shown.filter(c => c.quit_rate != null && c.fs !== "SEC").sort((a, b) => b.quit_rate - a.quit_rate);
+    fit("turnbar", list.length, 30);
     make("turnbar", { type: "bar",
       data: { labels: list.map(c => c === base ? "▶ " + c.name : c.name), datasets: [
         { label: "입사 비율", data: list.map(c => c.join_rate), backgroundColor: css("--s1"), borderRadius: 4, borderSkipped: false, barPercentage: .85, categoryPercentage: .8 },
@@ -790,7 +817,6 @@ fetch("data.json").then(r => r.json()).then(async d => {
 
   kindSel.onchange = () => { setKind(); trend(); render(); };
   baseSel.onchange = () => { pick.value = baseSel.value; trend(); render(); };
-  indSel.onchange = render;
   pick.value = baseSel.value;
   render(); trend(); coupang();
 });
