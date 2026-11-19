@@ -110,6 +110,12 @@ html.embed body { background: transparent; }
 
   <section class="card" aria-label="설정">
     <div class="row" style="margin-bottom:16px">
+      <div class="field"><span>나라</span>
+        <div class="seg" role="group" aria-label="나라 고르기">
+          <button data-g="" aria-pressed="true">국내+미국</button>
+          <button data-g="KR" aria-pressed="false">국내</button>
+          <button data-g="US" aria-pressed="false">미국</button>
+        </div></div>
       <label class="field"><span>볼 숫자</span>
         <select id="m">
           <option value="open">열린 공고 수</option>
@@ -190,6 +196,11 @@ function init() {
   ["m", "r", "c", "w0", "w1"].forEach(id => $(id).addEventListener("change", e => { S[id] = /^w/.test(id) ? +e.target.value : e.target.value; draw(); }));
   document.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { S.v = b.dataset.v; draw(); });
   document.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { S.p = +b.dataset.p; draw(); });
+  document.querySelectorAll("[data-g]").forEach(b => b.onclick = () => {  // 나라 바로 고르기 (거르기 '나라' 칸과 같은 값)
+    const i = D.values.region.indexOf(b.dataset.g);
+    if (i < 0) delete S.f.region; else S.f.region = new Set([i]);
+    draw();
+  });
   $("csv").onclick = csv;
   $("link").onclick = () => { navigator.clipboard.writeText(location.href).then(() => toast("링크를 복사했어요. 이 링크를 열면 같은 화면이 나와요."), () => toast("주소창의 링크를 복사해 주세요.")); };
   document.addEventListener("click", e => document.querySelectorAll("details.flt[open]").forEach(x => { if (!x.contains(e.target)) x.open = false; }));
@@ -327,6 +338,8 @@ function draw() {
   $("m").value = S.m; $("r").value = S.r; $("c").value = S.c; $("w0").value = S.w0; $("w1").value = S.w1;
   document.querySelectorAll("[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === S.v));
   document.querySelectorAll("[data-p]").forEach(b => b.setAttribute("aria-pressed", +b.dataset.p === S.p));
+  const rg = S.f.region && S.f.region.size === 1 ? D.values.region[[...S.f.region][0]] : "";
+  document.querySelectorAll("[data-g]").forEach(b => b.setAttribute("aria-pressed", b.dataset.g === rg));
   const R = LAST = compute();
   const w0 = Math.min(S.w0, S.w1), w1 = Math.max(S.w0, S.w1);
   const span = S.m === "open" || S.m === "pay" ? (S.m === "pay" ? D.updated + " 기준" : D.week_ends[w1] + " 기준")
