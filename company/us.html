@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>미국 회사 분석</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* 미국 회사 분석: SEC 실적·직원 수, WARN 해고 신고, H-1B 신청을 회사별로. 생김새는 한국 회사 분석(company/index.html)과 같은 토큰 */
+:root {
+  color-scheme: light;
+  --bg: #f2f4f6; --card: #ffffff; --sunken: #f2f4f6; --text: #191f28; --text2: #4e5968; --muted: #8b95a1;
+  --line: #e5e8eb; --grid: #f2f4f6; --tint: #e8f3ff; --tint-text: #1b64da;
+  --s1: #3182f6; --s2: #f66d1c; --s3: #10b07f; --s4: #f2a500; --dim: #d1d6db;
+  --good: #03a94d; --bad: #f04452;
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --r: 20px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #101013; --card: #1d1d22; --sunken: #2a2a31; --text: #f2f2f4; --text2: #c3c3c9; --muted: #8d8d96;
+    --line: #2c2c34; --grid: #26262c; --tint: #1c2b45; --tint-text: #8ab8ff;
+    --s1: #4b91f7; --s2: #f07a35; --s3: #18a87a; --s4: #d39300; --dim: #45454e;
+    --good: #2ec46f; --bad: #ff6370;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #101013; --card: #1d1d22; --sunken: #2a2a31; --text: #f2f2f4; --text2: #c3c3c9; --muted: #8d8d96;
+  --line: #2c2c34; --grid: #26262c; --tint: #1c2b45; --tint-text: #8ab8ff;
+  --s1: #4b91f7; --s2: #f07a35; --s3: #18a87a; --s4: #d39300; --dim: #45454e;
+  --good: #2ec46f; --bad: #ff6370;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 var(--sans); letter-spacing: -.01em; -webkit-font-smoothing: antialiased; }
+main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 64px; display: grid; gap: 16px; }
+h1 { font-size: 26px; letter-spacing: -.03em; margin: 0; }
+h3 { font-size: 17px; font-weight: 700; letter-spacing: -.02em; margin: 0; }
+.updated, .how { color: var(--muted); font-size: 13px; margin: 0; }
+.lead { margin: 4px 0 0; color: var(--text2); max-width: 72ch; }
+.tabs { display: flex; gap: 4px; background: var(--card); border-radius: 14px; padding: 4px; overflow-x: auto; scrollbar-width: none; }
+.tabs button { font: 600 14.5px var(--sans); border: 0; background: none; color: var(--text2); padding: 9px 16px; border-radius: 10px; cursor: pointer; white-space: nowrap; }
+.tabs button[aria-selected="true"] { background: var(--tint); color: var(--tint-text); }
+.fig { background: var(--card); border-radius: var(--r); padding: 22px; display: grid; gap: 8px; min-width: 0; }
+.fig .desc { margin: 0; font-size: 14px; color: var(--text2); max-width: 80ch; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.tile { background: var(--card); border-radius: var(--r); padding: 18px 20px; display: grid; gap: 2px; }
+.tile span { color: var(--text2); font-size: 13.5px; font-weight: 500; }
+.tile b { font-size: 22px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.tile small { color: var(--muted); font-size: 12.5px; }
+.chart { position: relative; height: 260px; }
+.scroll { overflow-x: auto; margin: 0 -6px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+th, td { padding: 9px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child, td.l, th.l { text-align: left; }
+th { font-weight: 600; color: var(--muted); font-size: 12.5px; position: sticky; top: 0; background: var(--card); }
+th[data-k] { cursor: pointer; user-select: none; }
+th[data-k]:hover { color: var(--text); }
+th.on { color: var(--tint-text); }
+tbody tr:hover td { background: var(--sunken); }
+td a { color: var(--text); text-decoration: none; font-weight: 600; }
+td a:hover { color: var(--tint-text); }
+td small { color: var(--muted); font-weight: 400; margin-left: 6px; }
+.up { color: var(--good); } .down { color: var(--bad); } .na { color: var(--dim); }
+select, input[type=search] { font: 600 15px var(--sans); padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.bars { display: grid; gap: 6px; }
+.bars div { display: grid; grid-template-columns: minmax(120px, 260px) 1fr 70px; gap: 10px; align-items: center; font-size: 13.5px; }
+.bars i { display: block; height: 10px; border-radius: 5px; background: var(--s1); }
+.bars span:last-child { text-align: right; font-variant-numeric: tabular-nums; color: var(--text2); }
+@media (max-width: 640px) { main { padding-top: 16px; } .grid2 { grid-template-columns: 1fr; } .bars div { grid-template-columns: 110px 1fr 56px; } }
+</style>
+</head>
+<body>
+<script src="../nav.js" data-page="company" data-country="US"></script>
+<main>
+  <div>
+    <h1>미국 회사 분석</h1>
+    <p class="lead">우리가 공고를 모으는 미국 회사 64곳을 정부 공개 자료로 봅니다. 실적·직원 수는 SEC, 해고 신고는 WARN(20개 주), 외국인 채용은 H-1B 신청(LCA)입니다.</p>
+    <p class="updated" id="updated"></p>
+  </div>
+  <div class="tabs" role="tablist">
+    <button role="tab" data-t="table">한눈에 보기</button>
+    <button role="tab" data-t="one">회사 하나</button>
+    <button role="tab" data-t="warn">WARN 해고 신고</button>
+    <button role="tab" data-t="h1b">H-1B 시장</button>
+  </div>
+
+  <section id="t-table" class="fig" hidden>
+    <h3>회사별 한눈에 보기</h3>
+    <p class="desc">제목을 누르면 그 기준으로 줄을 세웁니다. 회사 이름을 누르면 그 회사 하나를 자세히 봅니다.</p>
+    <div class="row"><input type="search" id="q" placeholder="회사 이름 찾기"></div>
+    <div class="scroll"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+    <p class="how">열린 공고 = 회사 채용 사이트에서 가장 최근에 센 수. 매출·영업이익률 = 가장 최근 분기(10-Q/10-K), 전년 같은 분기 대비. 직원 = 가장 최근 10-K 의 직원 수. 1인당 매출 = 최근 4분기 매출 ÷ 직원. WARN = 최근 12개월, 우리가 모으는 20개 주만. H-1B = 최근 4분기 승인된 신청의 인원(positions)과 정규직 연봉 중간값.</p>
+  </section>
+
+  <section id="t-one" hidden>
+    <div class="fig" style="margin-bottom:16px">
+      <div class="row"><select id="pick" aria-label="회사 고르기"></select><span class="updated" id="pickinfo"></span></div>
+    </div>
+    <div class="tiles" id="tiles"></div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="fig"><h3>분기 매출과 영업이익률</h3><div class="chart"><canvas id="c-rev"></canvas></div><p class="how">막대 = 매출(십억 달러), 선 = 영업이익률(%)</p></div>
+      <div class="fig"><h3>직원 수 (해마다 10-K)</h3><div class="chart"><canvas id="c-emp"></canvas></div><p class="how">회사가 1년에 한 번 10-K 에 적는 전체 직원 수</p></div>
+      <div class="fig"><h3>H-1B 신청 인원 (분기)</h3><div class="chart"><canvas id="c-h1b"></canvas></div><p class="how">막대 = 승인된 신청의 인원, 선 = 정규직 연봉 중간값(천 달러). 분기는 미국 정부 회계연도(FY, 10월 시작)</p></div>
+      <div class="fig"><h3>WARN 해고 신고 (분기)</h3><div class="chart"><canvas id="c-warn"></canvas></div><p class="how">막대 = 신고에 적힌 인원, 선 = 신고 건수. 20개 주만 모아서 실제보다 적을 수 있음</p></div>
+    </div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="fig"><h3>H-1B 많이 낸 직무 (최근 4분기)</h3><div class="bars" id="soc"></div><p class="how">직무 이름은 미국 노동부 SOC 분류 이름 그대로</p></div>
+      <div class="fig"><h3>이 회사 최근 WARN 신고</h3><div class="scroll"><table id="cwarn"><thead><tr><th class="l">신고일</th><th class="l">주</th><th class="l">도시</th><th>인원</th></tr></thead><tbody></tbody></table></div></div>
+    </div>
+  </section>
+
+  <section id="t-warn" hidden>
+    <div class="fig">
+      <h3>달마다 WARN 해고 신고 (20개 주 전체)</h3>
+      <p class="desc">미국은 큰 해고·사업장 폐쇄를 60일 전에 주 정부에 알려야 합니다(WARN). 우리가 모으는 주의 모든 회사 신고를 달마다 더했습니다.</p>
+      <div class="chart" style="height:300px"><canvas id="c-wm"></canvas></div>
+      <p class="how" id="wstates"></p>
+    </div>
+    <div class="fig" style="margin-top:16px">
+      <h3>우리 회사들의 최근 신고</h3>
+      <div class="scroll"><table id="wrec"><thead><tr><th class="l">신고일</th><th class="l">회사</th><th class="l">주</th><th class="l">도시</th><th>인원</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <section id="t-h1b" hidden>
+    <div class="fig">
+      <h3>H-1B 신청 많이 한 회사 (시장 전체, 최근 4분기)</h3>
+      <p class="desc">미국 노동부에 낸 H-1B 신청(LCA)을 회사 이름별로 더했습니다. 신청 건수 순서이고, 인원은 한 신청에 여러 명을 적을 수 있어 더 큽니다. 굵은 이름은 우리가 공고를 모으는 회사입니다.</p>
+      <div class="scroll"><table id="htop"><thead><tr><th class="l">#</th><th class="l">회사 (신청서 이름 그대로)</th><th>신청</th><th>인원</th></tr></thead><tbody></tbody></table></div>
+      <p class="how" id="hq"></p>
+    </div>
+  </section>
+</main>
+<script>
+(async () => {
+  const D = await fetch("us.json", {cache: "no-cache"}).then(r => r.json());
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? "").replace(/[&<>"]/g, x => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[x]));
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const N = (v, d = 0) => v == null ? '<span class="na">–</span>' : Number(v).toLocaleString("en-US", {maximumFractionDigits: d, minimumFractionDigits: d});
+  const P = v => v == null ? '<span class="na">–</span>' : `<span class="${v > 0 ? "up" : v < 0 ? "down" : ""}">${v > 0 ? "+" : ""}${v.toFixed(1)}%</span>`;
+  const B = v => v == null ? '<span class="na">–</span>' : "$" + (v / 1000).toLocaleString("en-US", {maximumFractionDigits: 1, minimumFractionDigits: 1}) + "B";
+  const K = v => v == null ? '<span class="na">–</span>' : "$" + Math.round(v / 1000) + "K";
+  const CO = D.companies, BY = Object.fromEntries(CO.map(c => [c.slug, c]));
+  $("#updated").textContent = `${D.updated} 기준 · 회사 ${CO.length}곳`;
+
+  // ── 탭 (주소 #table / #one=amazon / #warn / #h1b) ──
+  const tabs = [...document.querySelectorAll(".tabs button")];
+  function show(t) {
+    tabs.forEach(b => b.setAttribute("aria-selected", b.dataset.t === t));
+    document.querySelectorAll("main > section").forEach(s => s.hidden = s.id !== "t-" + t);
+    if (t === "warn") drawWarnMarket();
+  }
+  tabs.forEach(b => b.onclick = () => { location.hash = b.dataset.t === "one" ? "one=" + $("#pick").value : b.dataset.t; });
+  function route() {
+    const h = location.hash.slice(1);
+    if (h.startsWith("one")) { const s = h.split("=")[1]; if (BY[s]) $("#pick").value = s; drawOne(); show("one"); }
+    else show(["warn", "h1b"].includes(h) ? h : "table");
+  }
+
+  // ── 한눈에 보기 표 ──
+  const COLS = [
+    ["name", "회사", c => `<a href="#one=${c.slug}">${esc(c.name)}</a>${c.ticker ? `<small>${esc(c.ticker)}</small>` : ""}`, "l"],
+    ["open", "열린 공고", c => N(c.open)],
+    ["rev", "분기 매출", c => B(c.rev) + (c.lastq ? `<small>${c.lastq}</small>` : "")],
+    ["rev_yoy", "매출 전년비", c => P(c.rev_yoy)],
+    ["opm", "영업이익률", c => c.opm == null ? N(null) : c.opm.toFixed(1) + "%"],
+    ["emp_last", "직원", c => N(c.emp_last) + (c.emp_year ? `<small>${c.emp_year}</small>` : "")],
+    ["emp_yoy", "직원 전년비", c => P(c.emp_yoy)],
+    ["rev_per_emp", "1인당 매출", c => c.rev_per_emp == null ? N(null) : "$" + N(c.rev_per_emp) + "K"],
+    ["warn_people", "WARN 인원", c => N(c.warn_people) + (c.warn_n ? `<small>${c.warn_n}건</small>` : "")],
+    ["h1b_pos4", "H-1B 인원", c => N(c.h1b_pos4)],
+    ["h1b_p50", "H-1B 연봉 중간", c => K(c.h1b_p50)],
+  ];
+  let sortK = "open", sortD = -1;
+  function drawTable() {
+    $("#tbl thead").innerHTML = "<tr>" + COLS.map(([k, n, , l]) => `<th data-k="${k}" class="${l || ""} ${k === sortK ? "on" : ""}">${n}${k === sortK ? (sortD < 0 ? " ↓" : " ↑") : ""}</th>`).join("") + "</tr>";
+    const q = $("#q").value.trim().toLowerCase();
+    const list = CO.filter(c => !q || c.name.toLowerCase().includes(q) || (c.ticker || "").toLowerCase().includes(q))
+      .sort((a, b) => {
+        const x = a[sortK], y = b[sortK];
+        if (typeof x === "string" || typeof y === "string") return sortD * String(x).localeCompare(String(y));
+        if (x == null) return 1; if (y == null) return -1;
+        return sortD * (x - y);
+      });
+    $("#tbl tbody").innerHTML = list.map(c => "<tr>" + COLS.map(([, , f, l]) => `<td class="${l || ""}">${f(c)}</td>`).join("") + "</tr>").join("");
+    $("#tbl thead").querySelectorAll("th").forEach(th => th.onclick = () => {
+      const k = th.dataset.k; if (k === sortK) sortD = -sortD; else { sortK = k; sortD = k === "name" ? 1 : -1; } drawTable();
+    });
+  }
+  $("#q").oninput = drawTable;
+
+  // ── 차트 공통 ──
+  Chart.defaults.font.family = css("--sans");
+  Chart.defaults.color = css("--muted");
+  const charts = {};
+  function chart(id, cfg) {
+    charts[id]?.destroy();
+    cfg.options = Object.assign({responsive: true, maintainAspectRatio: false, interaction: {mode: "index", intersect: false},
+      plugins: {legend: {display: false}}}, cfg.options || {});
+    charts[id] = new Chart(document.getElementById(id), cfg);
+  }
+  const grid = {color: css("--grid")};
+  const combo = (id, labels, bar, line, barName, lineName, lineFmt) => chart(id, {
+    data: {labels, datasets: [
+      {type: "bar", label: barName, data: bar, backgroundColor: css("--s1"), borderRadius: 4, yAxisID: "y", order: 2},
+      {type: "line", label: lineName, data: line, borderColor: css("--s2"), backgroundColor: css("--s2"), pointRadius: 3, spanGaps: true, yAxisID: "y2", order: 1},
+    ]},
+    options: {scales: {x: {grid: {display: false}}, y: {grid, beginAtZero: true}, y2: {position: "right", grid: {display: false}, ticks: {callback: lineFmt}}},
+      plugins: {legend: {display: true, position: "bottom", labels: {boxWidth: 10, boxHeight: 10}}}},
+  });
+
+  // ── 회사 하나 ──
+  $("#pick").innerHTML = CO.map(c => `<option value="${c.slug}">${esc(c.name)}</option>`).join("");
+  $("#pick").value = BY.amazon ? "amazon" : CO[0].slug;
+  $("#pick").onchange = () => { location.hash = "one=" + $("#pick").value; };
+  function drawOne() {
+    const c = BY[$("#pick").value];
+    $("#pickinfo").textContent = c.ticker ? `${c.ticker} · SEC 자료 있음` : "상장사가 아니거나 SEC 실적 자료가 없음";
+    const t = (span, b, small) => `<div class="tile"><span>${span}</span><b>${b}</b><small>${small || ""}</small></div>`;
+    $("#tiles").innerHTML = [
+      t("열린 공고", N(c.open), "회사 채용 사이트 기준"),
+      t("분기 매출", B(c.rev), c.lastq ? `${c.lastq} · 전년비 ${c.rev_yoy == null ? "–" : (c.rev_yoy > 0 ? "+" : "") + c.rev_yoy + "%"}` : ""),
+      t("영업이익률", c.opm == null ? N(null) : c.opm.toFixed(1) + "%", c.lastq || ""),
+      t("직원", N(c.emp_last), c.emp_year ? `${c.emp_year} 10-K · 전년비 ${c.emp_yoy == null ? "–" : (c.emp_yoy > 0 ? "+" : "") + c.emp_yoy + "%"}` : ""),
+      t("WARN 인원 (12개월)", N(c.warn_people || 0), `${c.warn_n || 0}건 · 20개 주`),
+      t("H-1B 인원 (4분기)", N(c.h1b_pos4), c.h1b_p50 ? `연봉 중간값 ${K(c.h1b_p50)} · 새로 뽑음 ${c.h1b_new_pct ?? "–"}%` : ""),
+    ].join("");
+    const qs = D.quarters, s = c.sec || {};
+    combo("c-rev", qs, qs.map(q => s[q]?.[0] == null ? null : +(s[q][0] / 1000).toFixed(2)),
+      qs.map(q => s[q]?.[0] && s[q]?.[1] != null ? +(s[q][1] / s[q][0] * 100).toFixed(1) : null), "매출 ($B)", "영업이익률 (%)", v => v + "%");
+    const ey = Object.keys(c.emp || {});
+    chart("c-emp", {type: "bar", data: {labels: ey, datasets: [{label: "직원", data: ey.map(y => c.emp[y]), backgroundColor: css("--s3"), borderRadius: 4}]},
+      options: {scales: {x: {grid: {display: false}}, y: {grid, beginAtZero: true}}}});
+    const hq = D.h1b_quarters, h = c.h1b || {};
+    combo("c-h1b", hq.map(q => q.replace("FY", "")), hq.map(q => h[q]?.[1] ?? 0), hq.map(q => h[q]?.[2] == null ? null : Math.round(h[q][2] / 1000)),
+      "인원", "연봉 중간값 ($K)", v => "$" + v + "K");
+    const w = c.warn || {}, wqs = [...new Set([...qs, ...D.warn_quarters])].sort().slice(-12);
+    combo("c-warn", wqs, wqs.map(q => w[q]?.[1] ?? 0), wqs.map(q => w[q]?.[0] ?? 0), "인원", "건수", v => v);
+    const top = c.h1b_soc || [], mx = Math.max(1, ...top.map(x => x[1]));
+    $("#soc").innerHTML = top.length ? top.map(([n, v]) => `<div><span>${esc(n)}</span><i style="width:${v / mx * 100}%"></i><span>${N(v)}</span></div>`).join("") : '<p class="how">최근 4분기 신청 없음</p>';
+    const rec = D.warn_recent.filter(r => r.slug === c.slug).slice(0, 15);
+    $("#cwarn tbody").innerHTML = rec.length ? rec.map(r => `<tr><td class="l">${r.d}</td><td class="l">${esc(r.st)}</td><td class="l">${esc(r.city)}</td><td>${N(r.n)}</td></tr>`).join("")
+      : '<tr><td class="l" colspan="4">모은 20개 주에서 찾은 신고 없음</td></tr>';
+  }
+
+  // ── WARN 시장 ──
+  let warnDrawn = false;
+  function drawWarnMarket() {
+    if (warnDrawn) return; warnDrawn = true;
+    const m = D.warn_month;
+    combo("c-wm", m.map(x => x[0]), m.map(x => x[2]), m.map(x => x[1]), "인원", "신고 건수", v => v);
+    const last = m[m.length - 1];
+    $("#wstates").textContent = `모으는 주: ${D.warn_states.join(", ")}. 마지막 달(${last[0]})은 아직 다 안 찬 달입니다. 인원을 안 적은 신고는 0으로 셉니다.`;
+  }
+  $("#wrec tbody").innerHTML = D.warn_recent.slice(0, 60).map(r => `<tr><td class="l">${r.d}</td><td class="l"><a href="#one=${r.slug}">${esc(BY[r.slug]?.name || r.slug)}</a></td><td class="l">${esc(r.st)}</td><td class="l">${esc(r.city)}</td><td>${N(r.n)}</td></tr>`).join("");
+
+  // ── H-1B 시장 ──
+  $("#htop tbody").innerHTML = D.h1b_top.map((e, i) => `<tr><td class="l">${i + 1}</td><td class="l">${e.slug && BY[e.slug] ? `<a href="#one=${e.slug}">${esc(e.employer)}</a>` : esc(e.employer)}</td><td>${N(e.cases)}</td><td>${N(e.pos)}</td></tr>`).join("");
+  $("#hq").textContent = `분기: ${D.h1b_top_quarters.join(", ")} (미국 정부 회계연도). 인원 20명 이상 신청한 회사만 모은 표입니다.`;
+
+  drawTable();
+  window.addEventListener("hashchange", route);
+  route();
+})();
+</script>
+<script src="https://humgut1.github.io/home.js" defer></script>
+</body>
+</html>
