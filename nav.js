@@ -1,6 +1,6 @@
 // 모든 화면 맨 위 공통 메뉴: [한국 | 미국] 나라 탭 + 그 나라 메뉴.
 // 화면마다 <body> 바로 안 첫 줄에  <script src="../nav.js" data-page="market"></script>  처럼 넣는다.
-// - data-page: market · company · game · org · bank (지금 화면, 메뉴에 표시)
+// - data-page: market · company · reports · game · org · bank (지금 화면, 메뉴에 표시)
 // - data-country: 그 화면이 한 나라 전용이면 KR · US (안 주면 주소의 ?r= → 이 브라우저에 기억한 나라 → 한국)
 // 고른 나라는 window.SITE_COUNTRY 로 화면 코드가 읽는다. 🔒 = 비밀번호를 넣어야 열리는 화면.
 (() => {
@@ -16,7 +16,7 @@
   window.SITE_COUNTRY = C;
 
   const MENU = {
-    KR: [["market", "시장 분석", "market/?r=KR"], ["company", "회사 분석", "company/"],
+    KR: [["market", "시장 분석", "market/?r=KR"], ["company", "회사 분석", "company/"], ["reports", "리포트", "reports/"],
          ["game", "게임산업", "game/", 1], ["org", "조직도", "org/", 1], ["bank", "공고뱅크", "bank/?r=KR", 1]],
     US: [["market", "시장 분석", "market/?r=US"], ["company", "회사 분석", "company/us.html"], ["bank", "공고뱅크", "bank/?r=US", 1]],
   };

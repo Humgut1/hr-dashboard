@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>정기 리포트</title>
+<link rel="stylesheet" href="assets/report.css">
+<style>
+.rl { display: grid; gap: 12px; }
+.rl a.card { display: block; text-decoration: none; color: inherit; }
+.rl a.card:hover { border-color: var(--ink); }
+.rl h3 { margin: 0 0 4px; font-size: 17px; }
+.rl ol { margin: 8px 0 0; padding-left: 20px; color: var(--text2); }
+.kinds { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 16px; }
+.kinds button { border: 1px solid var(--line); background: var(--card); color: var(--text2); border-radius: 999px; padding: 6px 14px; font: inherit; cursor: pointer; }
+.kinds button[aria-pressed=true] { background: var(--tint); color: var(--tint-text); border-color: transparent; }
+</style>
+</head>
+<body>
+<script src="../nav.js" data-page="reports" data-country="KR"></script>
+<main class="wrap">
+<h1>정기 리포트</h1>
+<div class="meta">공고 · 공시 · 국민연금 숫자를 묶어서 분기 · 달마다 내는 리포트예요. 기간이 끝나기 전 호는 미리보기라 매일 새로 만들어요.</div>
+<div class="kinds" id="kinds"></div>
+<div class="rl" id="list"><div class="card">불러오는 중…</div></div>
+</main>
+<script>
+(async () => {
+  const esc = s => String(s).replace(/[&<>"]/g, x => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[x]));
+  let items = [];
+  try { items = (await (await fetch("index.json", {cache: "no-store"})).json()).reports || []; } catch (e) { /* 빈 목록 */ }
+  const kinds = [...new Map(items.map(i => [i.kind, i.kind_name])).entries()];
+  let on = "";
+  const draw = () => {
+    const xs = items.filter(i => !on || i.kind === on);
+    document.getElementById("list").innerHTML = xs.length ? xs.map(i => `<a class="card" href="${esc(i.path)}">
+      <h3>${esc(i.title)}</h3>
+      <div class="meta">${esc(i.kind_name)} · 만든 날 ${esc(i.made)}${i.final ? "" : ' <span class="draft">미리보기</span>'}</div>
+      <ol>${(i.conclusions || []).map(t => `<li>${esc(t)}</li>`).join("")}</ol></a>`).join("")
+      : '<div class="card">아직 낸 리포트가 없어요.</div>';
+    document.getElementById("kinds").innerHTML = [["", "전체"], ...kinds].map(([k, n]) =>
+      `<button data-k="${esc(k)}" aria-pressed="${k === on}">${esc(n)}</button>`).join("");
+  };
+  document.getElementById("kinds").onclick = ev => { const b = ev.target.closest("button"); if (b) { on = b.dataset.k; draw(); } };
+  draw();
+})();
+</script>
+</body>
+</html>
