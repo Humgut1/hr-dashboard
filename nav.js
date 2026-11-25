@@ -16,9 +16,9 @@
   window.SITE_COUNTRY = C;
 
   const MENU = {
-    KR: [["market", "시장 분석", "market/?r=KR"], ["company", "회사 분석", "company/"], ["reports", "리포트", "reports/"],
+    KR: [["market", "시장 분석", "market/?r=KR"], ["company", "회사 분석", "company/"], ["reports", "리포트", "reports/?r=KR"],
          ["game", "게임산업", "game/", 1], ["org", "조직도", "org/", 1], ["bank", "공고뱅크", "bank/?r=KR", 1]],
-    US: [["market", "시장 분석", "market/?r=US"], ["company", "회사 분석", "company/us.html"], ["bank", "공고뱅크", "bank/?r=US", 1]],
+    US: [["market", "시장 분석", "market/?r=US"], ["company", "회사 분석", "company/us.html"], ["reports", "리포트", "reports/?r=US"], ["bank", "공고뱅크", "bank/?r=US", 1]],
   };
   const url = (c, page) => BASE + (MENU[c].find(m => m[0] === page) || MENU[c][0])[2];
   const esc = s => String(s).replace(/[&<>"]/g, x => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[x]));
