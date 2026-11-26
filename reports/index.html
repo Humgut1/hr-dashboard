@@ -30,6 +30,9 @@
   const esc = s => String(s).replace(/[&<>"]/g, x => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[x]));
   let items = [];
   try { items = (await (await fetch("index.json", {cache: "no-store"})).json()).reports || []; } catch (e) { /* 빈 목록 */ }
+  // ?r=US · ?r=KR = 메뉴에서 나라를 골라 들어오면 그 나라 리포트만 (nav.js 리포트 링크)
+  const reg = (new URLSearchParams(location.search).get("r") || "").toLowerCase();
+  if (reg === "us" || reg === "kr") items = items.filter(i => i.kind.startsWith(reg + "-"));
   const kinds = [...new Map(items.map(i => [i.kind, i.kind_name])).entries()];
   let on = "";
   const draw = () => {
